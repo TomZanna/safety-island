@@ -18,6 +18,8 @@ const char * flow_fault_name (flow_fault_type_t type)
    case FLOW_FAULT_INPUTS:   return "inputs";
    case FLOW_FAULT_LOGIC:    return "logic";
    case FLOW_FAULT_BUSDROP:  return "busdrop";
+   case FLOW_FAULT_STALL:    return "stall";
+   case FLOW_FAULT_FRAME:    return "frame";
    default:                  return "?";
    }
 }
@@ -31,7 +33,7 @@ bool flow_fault_parse (const char * name, flow_fault_type_t * type)
       return false;
    }
 
-   for (candidate = FLOW_FAULT_NONE; candidate <= FLOW_FAULT_BUSDROP; candidate++)
+   for (candidate = FLOW_FAULT_NONE; candidate <= FLOW_FAULT_FRAME; candidate++)
    {
       if (strcmp (name, flow_fault_name (candidate)) == 0)
       {

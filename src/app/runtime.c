@@ -9,6 +9,7 @@
 #include "flow_runtime.h"
 #include "flow_log.h"
 #include "flow_time.h"
+#include "self_test.h"
 
 #include <fsoe_app_glue.h>
 
@@ -22,6 +23,15 @@ bool flow_runtime_init (flow_runtime_t * runtime, const flow_cli_config_t * cfg)
 
    memset (runtime, 0, sizeof (*runtime));
    runtime->cfg = *cfg;
+
+   /* Before touching anything else: known answer tests of the mechanisms that
+    * the two channels share (digest, frame split/assembly, safe logic). If a
+    * shared mechanism is broken the 1oo2 cross-check would be blind, so the
+    * system must not start at all. */
+   if (!flow_self_test_run ())
+   {
+      return false;
+   }
 
    atomic_init (&runtime->stop, false);
    atomic_init (&runtime->slave_session_id, 0u);
@@ -164,9 +174,10 @@ static void report_core (
 
    printf ("%s  cycles=%u  frames_tx=%u  frames_rx=%u  data_cycles=%u\n",
       name, s->cycles, s->frames_sent, s->frames_received, s->data_cycles);
-   printf ("      pdu_ok=%u pdu_ko=%u egress_timeouts=%u commit_failures=%u\n",
-      s->pdu_matches, s->pdu_mismatches, s->egress_timeouts,
-      s->commit_failures);
+   printf ("      tx_published=%u pdu_ok=%u pdu_ko=%u egress_timeouts=%u\n",
+      s->tx_published, s->pdu_matches, s->pdu_mismatches, s->egress_timeouts);
+   printf ("      tx_index_faults=%u rx_index_faults=%u tx_verify_failures=%u\n",
+      s->tx_index_faults, s->rx_index_faults, s->tx_verify_failures);
    printf ("      inputs_ok=%u inputs_ko=%u logic_ok=%u logic_ko=%u\n",
       s->inputs_ok, s->inputs_mismatches, s->logic_ok, s->logic_mismatches);
    printf ("      session_neg=%u session_fail=%u resets=%u reset_req=%u\n",
@@ -215,10 +226,10 @@ bool flow_runtime_report (const flow_runtime_t * runtime)
    printf ("-------------------------------------------------------------\n");
    report_core ("M7 ", &runtime->core[MU_NODE_M7]);
    report_core ("M33", &runtime->core[MU_NODE_M33]);
-   printf ("A55  bus_cycles=%u  shmem_tx_read=%u  shmem_rx_published=%u  "
-      "dropped=%u  deferred=%u\n",
+   printf ("A55  bus_cycles=%u  shmem_frames_merged=%u  shmem_rx_published=%u  "
+      "dropped=%u\n",
       a55->bus_cycles, a55->tx_frames_read, a55->slave_frames_published,
-      a55->tx_frames_dropped, a55->publish_deferred);
+      a55->tx_frames_dropped);
    printf ("     master_frames_delivered=%u  slave_frames=%u/%u  "
       "process_data_cycles=%u\n",
       a55->master_frames_delivered, a55->slave_frames_in,
@@ -226,11 +237,12 @@ bool flow_runtime_report (const flow_runtime_t * runtime)
    printf ("MU   messages=%u delivered=%u timeouts=%u digest_errors=%u "
       "routing_errors=%u\n",
       mu.sent, mu.delivered, mu.timeouts, mu.digest_errors, mu.routing_errors);
-   printf ("SHM  rx_publishes=%u tx_stages=%u tx_commits=%u "
-      "last_outputs=0x%04x/0x%04x actuator=%s\n",
-      atomic_load (&runtime->shm->rx_publishes),
-      atomic_load (&runtime->shm->tx_stages),
-      atomic_load (&runtime->shm->tx_commits),
+   printf ("SHM  tx_count m7=%u m33=%u  merged/delivered=%u  rx_publishes=%u\n",
+      flow_shm_count (&runtime->shm->tx[0][MU_NODE_M7]),
+      flow_shm_count (&runtime->shm->tx[0][MU_NODE_M33]),
+      atomic_load (&runtime->shm->tx_delivered),
+      atomic_load (&runtime->shm->rx_publishes));
+   printf ("     last_outputs=0x%04x/0x%04x actuator=%s\n",
       atomic_load (&runtime->shm->a55.safe_outputs_word0),
       atomic_load (&runtime->shm->a55.safe_outputs_word1),
       atomic_load (&runtime->shm->a55.actuator_enabled) ? "ENABLED" : "SAFE STOP");
@@ -266,7 +278,9 @@ bool flow_runtime_report (const flow_runtime_t * runtime)
 
    total_mismatches = m7->pdu_mismatches + m33->pdu_mismatches +
       m7->inputs_mismatches + m33->inputs_mismatches +
-      m7->logic_mismatches + m33->logic_mismatches;
+      m7->logic_mismatches + m33->logic_mismatches +
+      m7->tx_index_faults + m33->tx_index_faults +
+      m7->rx_index_faults + m33->rx_index_faults;
 
    no_unexpected_faults = (runtime->cfg.fault != FLOW_FAULT_NONE) ||
       ((total_mismatches == 0u) && (mu.timeouts == 0u) &&
@@ -280,7 +294,25 @@ bool flow_runtime_report (const flow_runtime_t * runtime)
    report_check (fault_ok,
       "the injected fault actually fired", &ok);
    report_check (m7->pdu_matches > 0u,
-      "the egress PDU cross-check ran (frames committed through SHMEM)", &ok);
+      "the egress PDU cross-check ran (frames published to SHMEM)", &ok);
+   {
+      const uint32_t count_m7 =
+         flow_shm_count (&runtime->shm->tx[0][MU_NODE_M7]);
+      const uint32_t count_m33 =
+         flow_shm_count (&runtime->shm->tx[0][MU_NODE_M33]);
+      const uint32_t common = (count_m7 < count_m33) ? count_m7 : count_m33;
+
+      report_check (runtime->a55.last_tx_delivered[0] <= common,
+         "the A55 merged only frames written by both cores "
+         "(MIN(tx_count m7, m33))", &ok);
+   }
+
+   if (runtime->cfg.fault == FLOW_FAULT_STALL)
+   {
+      report_check (
+         (m7->tx_index_faults + m33->tx_index_faults) > 0u,
+         "the tx counter divergence was detected and re-aligned", &ok);
+   }
 
    printf ("-------------------------------------------------------------\n");
    printf (" RESULT: %s\n", ok ? "PASS" : "FAIL");

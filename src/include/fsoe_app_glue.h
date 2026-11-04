@@ -37,7 +37,7 @@ typedef struct flow_app_ctx flow_app_ctx_t;
  * \brief Called by the stack from inside fsoeapp_send()
  *
  * The owner (a safety core or the A55 slave) performs the inter-core
- * cross-check of the generated PDU and the SHMEM 2-phase commit.
+ * cross-check of the generated PDU and the publication of the frame.
  */
 typedef void (*flow_app_egress_fn) (
    flow_app_ctx_t * ctx,

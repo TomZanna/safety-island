@@ -73,6 +73,14 @@ run_case "black channel frame loss (watchdog)" \
    "WD_EXPIRED" \
    --fault busdrop --fault-cycle 20 --fault-count 60
 
+run_case "SHMEM tx counter divergence (M33 stall)" \
+   "SHMEM COUNTER MISMATCH" \
+   --fault stall --fault-cycle 30
+
+run_case "slave rejects the assembled frame (corrupt data half)" \
+   "INVALID_CRC" \
+   --fault frame --fault-cycle 30
+
 echo "-------------------------------------------------------------"
 echo "  $pass passed, $fail failed"
 echo

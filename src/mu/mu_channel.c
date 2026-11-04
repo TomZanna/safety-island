@@ -29,7 +29,6 @@ const char * mu_chan_name (mu_chan_t chan)
    switch (chan)
    {
    case MU_CHAN_SESSION_ID:  return "SESSION_ID";
-   case MU_CHAN_RX_SNAPSHOT: return "RX_SNAPSHOT";
    case MU_CHAN_EGRESS_PDU:  return "EGRESS_PDU";
    case MU_CHAN_SAFE_INPUTS: return "SAFE_INPUTS";
    case MU_CHAN_SAFE_LOGIC:  return "SAFE_LOGIC";

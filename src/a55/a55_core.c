@@ -87,33 +87,87 @@ void flow_a55_field_scenario (
 
 /* ------------------------------------------------------------- bus exchange */
 
-/* Read a new frame committed by the safety cores (SHMEM TX channel) */
+/*
+ * Merge of the two independent SHMEM writers and assembly of the final frame.
+ *
+ * The A55 performs no safety check (diagram: it only merges and sends):
+ *
+ *   common = MIN(tx_count_m7, tx_count_m33)  -> last frame BOTH cores wrote
+ *   frame  = interleave(CRC half of MU_CRC_NODE, data half of MU_DATA_NODE)
+ *
+ * If the two halves are not consistent the assembled frame is simply not a
+ * valid FSoE frame: the slave rejects it with a CRC error and goes to the
+ * fail-safe state. That is the end-to-end check of the two cores, performed
+ * by a component (the slave) that is neither of them nor the black channel.
+ */
 static void a55_read_shmem (flow_a55_core_t * a55, uint32_t k)
 {
+   const flow_shm_chan_t * crc_chan =
+      &a55->env.shm->tx[k][MU_CRC_NODE];
+   const flow_shm_chan_t * data_chan =
+      &a55->env.shm->tx[k][MU_DATA_NODE];
+   flow_fsoe_slot_t crc_part;
+   flow_fsoe_slot_t data_part;
    flow_fsoe_slot_t slot;
-   uint32_t published = 0u;
+   uint32_t count_crc;
+   uint32_t count_data;
+   uint32_t common;
+   uint32_t len;
 
-   if (!flow_shmem_tx_read (a55->env.shm, k, &slot, &published))
+   count_crc = flow_shm_count (crc_chan);
+   count_data = flow_shm_count (data_chan);
+
+   if ((count_crc == 0u) || (count_data == 0u))
    {
+      return; /* no core has published anything yet */
+   }
+
+   common = (count_crc < count_data) ? count_crc : count_data;
+
+   if (common == a55->last_tx_delivered[k])
+   {
+      return; /* nothing new that both cores wrote */
+   }
+
+   if (!flow_shm_read_index (crc_chan, common, &crc_part) ||
+       !flow_shm_read_index (data_chan, common, &data_part))
+   {
+      return; /* seqlock: retry at the next bus cycle */
+   }
+
+   len = data_part.len;
+
+   if ((len < FLOW_FSOE_PDU_MIN_SIZE) || (len > FLOW_FSOE_PDU_MAX))
+   {
+      LOG_ERROR (FLOW_TAG_A55,
+         "k=%u frame %u: invalid assembled length %u, not sent",
+         k, (unsigned)common, (unsigned)len);
+      a55->last_tx_delivered[k] = common;
       return;
    }
 
-   if (published == a55->last_tx_published[k])
-   {
-      return; /* no new frame since the previous bus cycle */
-   }
+   flow_fsoe_slot_clear (&slot);
+   slot.len = len;
+   slot.fc = common;
+   flow_fsoe_pdu_assemble (slot.pdu, crc_part.pdu, data_part.pdu, len);
+   slot.digest = flow_digest (slot.pdu, len);
 
-   a55->last_tx_published[k] = published;
+   a55->last_tx_delivered[k] = common;
    a55->stats.tx_frames_read++;
    atomic_fetch_add_explicit (
       &a55->env.shm->a55.tx_frames_read, 1u, memory_order_relaxed);
 
    LOG_TRACE (FLOW_TAG_A55,
-      "k=%u SHMEM TX read: %s len=%u fc=%u digest=0x%08x",
+      "k=%u SHMEM merge: count m7=%u m33=%u -> frame %u assembled "
+      "(CRCs from %s, data from %s) %s len=%u digest=0x%08x",
       k,
+      (unsigned)count_crc,
+      (unsigned)count_data,
+      (unsigned)common,
+      (MU_CRC_NODE == MU_NODE_M7) ? "M7" : "M33",
+      (MU_DATA_NODE == MU_NODE_M7) ? "M7" : "M33",
       flow_fsoe_command_name (flow_fsoe_command (&slot)),
       (unsigned)slot.len,
-      (unsigned)published,
       slot.digest);
 
    if (flow_fault_hits (a55->env.fault, FLOW_FAULT_BUSDROP, a55->bus_cycle))
@@ -123,16 +177,18 @@ static void a55_read_shmem (flow_a55_core_t * a55, uint32_t k)
       atomic_fetch_add_explicit (
          &a55->env.shm->a55.tx_frames_dropped, 1u, memory_order_relaxed);
       LOG_ERROR (FLOW_TAG_A55,
-         "FAULT INJECTION (busdrop) bus cycle %u: frame fc=%u dropped, the "
+         "FAULT INJECTION (busdrop) bus cycle %u: frame %u dropped, the "
          "safe cores will not receive an answer",
          a55->bus_cycle,
-         (unsigned)published);
+         (unsigned)common);
       return;
    }
 
    a55->pending_master[k] = slot;
    a55->pending_master_ready[k] = true;
    a55->stats.master_frames_delivered++;
+   atomic_fetch_add_explicit (
+      &a55->env.shm->tx_delivered, 1u, memory_order_relaxed);
 }
 
 /* Run the emulated slave stack for one bus cycle */
@@ -144,7 +200,7 @@ static void a55_sync_slave (flow_a55_core_t * a55, uint32_t k)
    if (a55->pending_master_ready[k])
    {
       flow_app_ctx_provide_rx (
-         &a55->ctx[k], &a55->pending_master[k], a55->last_tx_published[k]);
+         &a55->ctx[k], &a55->pending_master[k], a55->last_tx_delivered[k]);
       a55->pending_master_ready[k] = false;
    }
 
@@ -234,36 +290,28 @@ static void a55_sync_slave (flow_a55_core_t * a55, uint32_t k)
 }
 
 
-/* Publish the slave reply into the SHMEM RX channel (2-phase commit) */
+/* Publish the slave reply into the SHMEM RX channel */
 static void a55_publish_slave_frame (flow_a55_core_t * a55, uint32_t k)
 {
+   uint32_t index = 0u;
+
    if (!a55->pending_slave_ready[k])
    {
       return;
    }
 
-   /* Never publish while a safety core is inside its cycle: the cores must
-    * always latch the very same snapshot. If we cannot publish now the frame
-    * stays pending and is retried at the next bus cycle. */
-   if (!flow_shmem_cores_idle (a55->env.shm))
+   /* Single writer direction: the A55 simply publishes and moves its counter.
+    * The cores read the newest frame with their own counters and detect any
+    * inconsistency between them (rx_index/rx_digest) in their cross-check. */
+   if (!flow_shm_publish_frame (
+          &a55->env.shm->rx[k], &a55->pending_slave[k], &index))
    {
-      a55->stats.publish_deferred++;
-      atomic_fetch_add_explicit (
-         &a55->env.shm->rx_publish_deferred, 1u, memory_order_relaxed);
-      return;
-   }
-
-   a55->rx_frames[k]++;
-   a55->pending_slave[k].fc = a55->rx_frames[k];
-
-   if (!flow_shmem_rx_publish (a55->env.shm, k, &a55->pending_slave[k]))
-   {
-      a55->stats.publish_deferred++;
-      return;
+      return; /* seqlock: retry at the next bus cycle */
    }
 
    a55->pending_slave_ready[k] = false;
    a55->stats.slave_frames_published++;
+   a55->rx_frames[k] = index;
 
    atomic_store_explicit (
       &a55->env.shm->a55.slave_state[k],
@@ -271,13 +319,15 @@ static void a55_publish_slave_frame (flow_a55_core_t * a55, uint32_t k)
       memory_order_relaxed);
    atomic_fetch_add_explicit (
       &a55->env.shm->a55.slave_frames_out[k], 1u, memory_order_relaxed);
+   atomic_fetch_add_explicit (
+      &a55->env.shm->rx_publishes, 1u, memory_order_relaxed);
 
    LOG_TRACE (FLOW_TAG_A55,
-      "k=%u SHMEM RX published: %s len=%u fc=%u digest=0x%08x",
+      "k=%u SHMEM RX published: frame %u (%s len=%u digest=0x%08x)",
       k,
+      (unsigned)index,
       flow_fsoe_command_name (flow_fsoe_command (&a55->pending_slave[k])),
       (unsigned)a55->pending_slave[k].len,
-      (unsigned)a55->rx_frames[k],
       a55->pending_slave[k].digest);
 }
 
@@ -304,14 +354,14 @@ static void a55_bus_cycle (flow_a55_core_t * a55)
       char description[64];
 
       LOG_DETAIL (FLOW_TAG_A55,
-         "bus %-4u slave=%-10s field=0x%02x/0x%02x actuator=%s shm_tx_fc=%u",
+         "bus %-4u slave=%-10s field=0x%02x/0x%02x actuator=%s common=%u",
          a55->bus_cycle,
          fsoeslave_state_description (a55->sync[0].current_state),
          ((const uint8_t *)&a55->field_inputs[0])[1],
          ((const uint8_t *)&a55->field_inputs[0])[0],
          flow_safe_logic_describe (&a55->field_outputs[0], description,
             sizeof (description)),
-         (unsigned)a55->last_tx_published[0]);
+         (unsigned)a55->last_tx_delivered[0]);
    }
 }
 
@@ -342,7 +392,7 @@ void flow_a55_core_init (flow_a55_core_t * a55, const flow_a55_env_t * env)
       flow_fsoe_slot_clear (&a55->pending_slave[k]);
       a55->pending_master_ready[k] = false;
       a55->pending_slave_ready[k] = false;
-      a55->last_tx_published[k] = 0u;
+      a55->last_tx_delivered[k] = 0u;
       a55->rx_frames[k] = 0u;
       a55->field_outputs_valid[k] = false;
       a55->last_state[k] = FSOESLAVE_STATE_RESET;

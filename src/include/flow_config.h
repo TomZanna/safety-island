@@ -64,14 +64,10 @@
  * SHMEM mailbox emulation
  * ---------------------------------------------------------------------- */
 
-/* Double buffered bank count (ping-pong 2-phase commit) */
-#define FLOW_SHM_BANKS 2u
-
-/* Bounded retries when a seqlock protected bank is being written */
-#define FLOW_SHM_READ_ATTEMPTS 10000u
-
-/* Bounded retries when M33 waits for M7 to stage a TX bank */
-#define FLOW_SHM_COMMIT_ATTEMPTS 200u
+/* Number of banks per channel. 3 = triple buffering: it guarantees that the
+ * bank selected by MIN(count_m7, count_m33) is never the one being written,
+ * even if one core is one or two publications behind. */
+#define FLOW_SHM_BANKS 3u
 
 /* -------------------------------------------------------------------------
  * Mini safe logic (see safe/safe_logic.c)

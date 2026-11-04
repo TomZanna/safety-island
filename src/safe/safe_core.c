@@ -23,30 +23,17 @@ typedef struct core_session_msg
    uint16_t rnd;
 } core_session_msg_t;
 
-/* MU_CHAN_RX_SNAPSHOT: which SHMEM bank M7 latched */
-typedef struct core_rx_snapshot_msg
-{
-   uint16_t k;
-   uint16_t bank;
-   uint32_t published;
-   uint32_t digest;
-   uint32_t len;
-   uint32_t anomalies;
-} core_rx_snapshot_msg_t;
-
-/* MU_CHAN_EGRESS_PDU: digest of the PDU generated for connection k */
+/* MU_CHAN_EGRESS_PDU: cross-check of the PDU generated for connection k */
 typedef struct core_egress_msg
 {
    uint16_t k;
    uint16_t len;
-   uint32_t tx_digest;    /**< digest of the generated PDU                    */
-   uint32_t tx_bank;      /**< SHMEM bank staged by M7 (used by M33 to commit) */
-   uint32_t rx_published; /**< publication counter of the latched RX frame    */
-   uint32_t rx_digest;    /**< digest of the latched RX frame                 */
+   uint32_t tx_digest; /**< digest of the frame as stored in SHMEM            */
+   uint32_t rx_digest; /**< digest of the latched RX frame                    */
    uint32_t anomalies;
 } core_egress_msg_t;
 
-/* MU_CHAN_SAFE_INPUTS: decoded safe inputs + connection status */
+/* MU_CHAN_SAFE_INPUTS: decoded safe inputs + status + SHMEM counters */
 typedef struct core_inputs_msg
 {
    uint16_t k;
@@ -56,6 +43,9 @@ typedef struct core_inputs_msg
    uint8_t sent_frame_type;
    uint8_t recv_frame_type;
    uint8_t reserved;
+   uint32_t tx_index;  /**< frames published to the A55 by this core           */
+   uint32_t rx_index;  /**< frames consumed from the A55 by this core          */
+   uint32_t rx_digest; /**< digest of the RX frame this core is working on     */
    uint32_t anomalies;
 } core_inputs_msg_t;
 
@@ -132,6 +122,7 @@ static void core_note_anomaly (
 
    core->anomalies++;
    core->stats.mu_anomalies++;
+   core->cycle_fault = true;
 
    LOG_ERROR (core->env.tag,
       "ANOMALY (cycle %u): %s -> fail-safe + connection reset",
@@ -318,11 +309,18 @@ static uint16_t core_session_id (flow_app_ctx_t * ctx)
  * Called from inside fsoemaster_sync_with_slave() whenever the stack wants to
  * put a frame on the black channel (fsoeapp_send).
  *
- *   1. both cores publish the digest of the generated PDU (and the digest of
- *      the RX frame they latched) on the messaging unit
- *   2. if the digests are identical M7 stages the PDU into the inactive SHMEM
- *      bank and M33 validates + commits it (2-phase commit)
- *   3. otherwise the connection is reset on both cores
+ *   1. both cores exchange on the messaging unit the digest of the frame their
+ *      stack generated: the two stacks must produce the same PDU
+ *   2. only if that holds, each core writes **its own half** of the frame in
+ *      its own SHMEM bank: the CRC core contributes the CRC words, the data
+ *      core the command byte, the safety data and the Connection ID
+ *   3. the core reads its half back from SHMEM and compares it byte by byte
+ *      with what it generated (a corruption of the copy is caught here)
+ *   4. the frame is published (own counter incremented)
+ *
+ * The A55 assembles the final frame by interleaving the two halves. Nobody
+ * coordinates anybody: the counters of the two cores stay aligned because a
+ * frame is published only after the cross-check succeeded.
  */
 static void core_on_egress (
    flow_app_ctx_t * ctx,
@@ -330,6 +328,11 @@ static void core_on_egress (
 {
    flow_safe_core_t * core = ctx->owner;
    const uint32_t k = ctx->k;
+   flow_shm_chan_t * chan = &core->env.shm->tx[k][core->env.id];
+   const bool crc_part = (core->env.id == MU_CRC_NODE);
+   const uint32_t index = core->tx_count[k] + 1u;
+   flow_fsoe_slot_t part;
+   flow_fsoe_slot_t stored;
    core_egress_msg_t message;
    const core_egress_msg_t * peer_message;
    mu_message_t peer;
@@ -342,15 +345,14 @@ static void core_on_egress (
 
    memset (&message, 0, sizeof (message));
 
+   core->stats.frames_sent++;
+
+   /* Phase 1: both stacks must have generated the same PDU. */
    message.k = (uint16_t)k;
    message.len = (uint16_t)frame->len;
    message.tx_digest = frame->digest;
-   message.tx_bank = 0u;
-   message.rx_published = core->latched_published[k];
    message.rx_digest = core->latched[k].digest;
    message.anomalies = core->anomalies;
-
-   core->stats.frames_sent++;
 
    if ((core->env.id == MU_NODE_M33) &&
        flow_fault_hits (core->env.fault, FLOW_FAULT_PDU, core->cycle))
@@ -361,19 +363,6 @@ static void core_on_egress (
          "FAULT INJECTION (pdu) cycle %u: corrupted PDU digest for k=%u",
          core->cycle,
          k);
-   }
-
-   /* Phase 1: M7 prepares the bank, but does not publish it. */
-   if (core->env.id == MU_NODE_M7)
-   {
-      if (!flow_shmem_tx_stage (
-             core->env.shm, k, frame, &message.tx_bank, NULL))
-      {
-         core->stats.commit_failures++;
-         core_note_anomaly (core, "cannot stage the TX frame in SHMEM");
-         core_request_reset (core, k);
-         return;
-      }
    }
 
    if (!mu_exchange (
@@ -406,7 +395,6 @@ static void core_on_egress (
    match = (peer_message->tx_digest == message.tx_digest) &&
       (peer_message->len == message.len) &&
       (peer_message->rx_digest == message.rx_digest) &&
-      (peer_message->rx_published == message.rx_published) &&
       (peer_message->anomalies == message.anomalies);
 
    core_merge_anomalies (core, peer_message->anomalies);
@@ -433,39 +421,77 @@ static void core_on_egress (
 
    core->stats.pdu_matches++;
 
+   /* Fault injection: one single core does not publish its frame even if it is
+    * identical to the one of the peer (lost publication -> counter drift). */
+   if ((core->env.id == MU_NODE_M33) &&
+       flow_fault_hits (core->env.fault, FLOW_FAULT_STALL, core->cycle))
+   {
+      flow_fault_note (core->env.fault);
+      LOG_ERROR (core->env.tag,
+         "FAULT INJECTION (stall) cycle %u: %s does not publish, its "
+         "tx_index stays at %u",
+         core->cycle,
+         (core->env.id == MU_NODE_M7) ? "M7" : "M33",
+         core->tx_count[k]);
+      return;
+   }
+
+   /* Phase 2: write only my half of the frame (frame number tx_count + 1). */
+   part = *frame;
+   flow_fsoe_pdu_split_copy (part.pdu, frame->pdu, frame->len, crc_part);
+   part.digest = flow_digest (part.pdu, frame->len);
+
+   if (!flow_shm_stage (chan, index, &part, NULL))
+   {
+      core_note_anomaly (core, "cannot write the TX frame into SHMEM");
+      core_request_reset (core, k);
+      return;
+   }
+
+   /* Phase 3: the bytes this core contributed must be intact in SHMEM. */
+   if (!flow_shm_read_index (chan, index, &stored) ||
+       !flow_fsoe_pdu_part_matches (
+          stored.pdu, frame->pdu, frame->len, crc_part))
+   {
+      core->stats.tx_verify_failures++;
+      core_note_anomaly (core, "TX half corrupted in SHMEM (read-back)");
+      core_request_reset (core, k);
+      return;
+   }
+
+   /* Fault injection: the data core re-writes its copy with one corrupted
+    * safety data byte *after* the read-back check. The assembled frame will
+    * carry good CRCs (from the other core) and bad data, so only the FSoE
+    * slave can detect it - which is exactly what this test demonstrates. */
+   if ((core->env.id == MU_DATA_NODE) &&
+       (frame->len > FLOW_FSOE_PDU_FIRST_DATA_BYTE) &&
+       flow_fault_hits (core->env.fault, FLOW_FAULT_FRAME, core->cycle))
+   {
+      flow_fault_note (core->env.fault);
+      LOG_ERROR (core->env.tag,
+         "FAULT INJECTION (frame) cycle %u: corrupting data byte %u of the "
+         "SHMEM copy after the local check (the CRCs stay valid)",
+         core->cycle,
+         (unsigned)FLOW_FSOE_PDU_FIRST_DATA_BYTE);
+      part.pdu[FLOW_FSOE_PDU_FIRST_DATA_BYTE] ^= 0xFFu;
+      part.digest = flow_digest (part.pdu, frame->len);
+      (void)flow_shm_stage (chan, index, &part, NULL);
+   }
+
+   /* Phase 4: publish (frame tx_count + 1 is now visible to the A55). */
+   core->tx_count[k]++;
+   flow_shm_commit (chan, core->tx_count[k]);
+   core->stats.tx_published++;
+
    LOG_DETAIL (core->env.tag,
-      "k=%u egress PDU OK: %s len=%u digest=0x%08x (tx bank %u)",
+      "k=%u egress PDU OK: %s len=%u digest=0x%08x -> published frame %u "
+      "(%s half)",
       k,
       flow_fsoe_command_name (flow_fsoe_command (frame)),
       (unsigned)frame->len,
-      message.tx_digest,
-      (unsigned)((core->env.id == MU_NODE_M7) ?
-         message.tx_bank : peer_message->tx_bank));
-
-   /* Phase 2: M33 validates the bank staged by M7 and publishes it. */
-   if (core->env.id == MU_NODE_M33)
-   {
-      uint32_t published = 0u;
-
-      if (!flow_shmem_tx_commit (
-             core->env.shm,
-             k,
-             peer_message->tx_bank,
-             peer_message->tx_digest,
-             &published))
-      {
-         core->stats.commit_failures++;
-         core_note_anomaly (core, "TX bank commit failed");
-         core_request_reset (core, k);
-         return;
-      }
-
-      LOG_TRACE (core->env.tag,
-         "k=%u: TX bank %u validated and committed (published=%u)",
-         k,
-         (unsigned)peer_message->tx_bank,
-         (unsigned)published);
-   }
+      frame->digest,
+      (unsigned)core->tx_count[k],
+      crc_part ? "CRC" : "data");
 }
 
 /* --------------------------------------- Step 1: latch of the raw RX frames */
@@ -476,105 +502,49 @@ static void core_latch_rx (flow_safe_core_t * core)
 
    for (k = 0; k < FLOW_NUM_CONNECTIONS; k++)
    {
+      flow_shm_chan_t * chan = &core->env.shm->rx[k];
       flow_fsoe_slot_t * slot = &core->latched[k];
+      uint32_t published;
 
       if (core_stopping (core))
       {
          break;
       }
 
-      if (core->env.id == MU_NODE_M7)
+      /* Independent readers: every core uses its own counter, nothing is
+       * announced by the peer. If the two cores end up working on different
+       * frames, the cross-check in step 3 detects it (rx_index/rx_digest)
+       * and brings the pair fail-safe. */
+      published = flow_shm_count (chan);
+
+      if ((published == 0u) || (published == core->rx_count[k]))
       {
-         core_rx_snapshot_msg_t message;
-
-         memset (&message, 0, sizeof (message));
-
-         if (!flow_shmem_rx_latch (
-                core->env.shm, k, slot, &core->latched_published[k]))
-         {
-            core->stats.rx_latch_failures++;
-            slot->len = 0u;
-            slot->digest = 0u;
-            core->latched_published[k] = 0u;
-         }
-
-         /* Tell M33 exactly which bank has been latched, so that both cores
-          * work on byte identical raw frames. */
-         message.k = (uint16_t)k;
-         message.bank = flow_shmem_rx_active (core->env.shm, k);
-         message.published = core->latched_published[k];
-         message.digest = slot->digest;
-         message.len = slot->len;
-         message.anomalies = core->anomalies;
-
-         (void)mu_publish (
-            core->env.mu,
-            core->env.id,
-            MU_CHAN_RX_SNAPSHOT,
-            core->cycle,
-            k,
-            &message,
-            (uint32_t)sizeof (message));
-      }
-      else
-      {
-         mu_message_t peer;
-         const core_rx_snapshot_msg_t * message;
-         bool latched = false;
-
-         if (mu_wait (
-                core->env.mu,
-                core->env.id,
-                MU_CHAN_RX_SNAPSHOT,
-                core->cycle,
-                k,
-                &peer,
-                FLOW_MU_TIMEOUT_US) &&
-             (peer.len == sizeof (core_rx_snapshot_msg_t)))
-         {
-            message = (const core_rx_snapshot_msg_t *)peer.payload;
-
-            core_merge_anomalies (core, message->anomalies);
-
-            if (flow_shmem_rx_read_bank (
-                   core->env.shm, k, message->bank, slot) &&
-                (slot->digest == message->digest) &&
-                (slot->len == message->len))
-            {
-               core->latched_published[k] = message->published;
-               latched = true;
-            }
-         }
-
-         if (!latched)
-         {
-            /* Fallback: latch whatever is currently published. */
-            core->stats.rx_latch_failures++;
-            if (!flow_shmem_rx_latch (
-                   core->env.shm, k, slot, &core->latched_published[k]))
-            {
-               slot->len = 0u;
-               slot->digest = 0u;
-               core->latched_published[k] = 0u;
-            }
-         }
+         continue; /* no new frame from the black channel */
       }
 
-      if ((slot->len > 0u) &&
-          (core->provided_published[k] != core->latched_published[k]))
+      if (!flow_shm_read_index (chan, published, slot))
       {
-         flow_app_ctx_provide_rx (
-            &core->ctx[k], slot, core->latched_published[k]);
-         core->provided_published[k] = core->latched_published[k];
-
-         LOG_TRACE (core->env.tag,
-            "k=%u latched RX %s len=%u fc=%u digest=0x%08x",
-            k,
-            flow_fsoe_command_name (flow_fsoe_command (slot)),
-            (unsigned)slot->len,
-            (unsigned)core->latched_published[k],
-            slot->digest);
+         core->stats.rx_latch_failures++;
+         continue;
       }
+
+      /* Never trust a digest computed by somebody else (here the A55 would
+       * have computed it): this core recomputes it on the bytes it actually
+       * latched, so that the rx_digest exchanged with the peer really is a
+       * comparison of the two frames. */
+      slot->digest = flow_digest (slot->pdu, slot->len);
+
+      core->rx_count[k] = published;
+
+      flow_app_ctx_provide_rx (&core->ctx[k], slot, published);
+
+      LOG_TRACE (core->env.tag,
+         "k=%u latched RX %s len=%u frame=%u digest=0x%08x",
+         k,
+         flow_fsoe_command_name (flow_fsoe_command (slot)),
+         (unsigned)slot->len,
+         (unsigned)published,
+         slot->digest);
    }
 }
 
@@ -639,6 +609,37 @@ static void core_sync (flow_safe_core_t * core)
 
 /* ------------------------ Step 3: cross-check of the decoded SafeInputs */
 
+#define CORE_MIN(a, b) (((a) < (b)) ? (a) : (b))
+
+/*
+ * Re-align the SHMEM counters of this core with the peer.
+ *
+ * The two cores take this decision independently but on the same pair of
+ * values exchanged over the messaging unit, and MIN() is commutative: both
+ * cores converge to the same value in the same cycle. No core is a master and
+ * nothing is announced.
+ *
+ * Converging to MIN() (and not to MAX()) keeps the invariant used by the A55:
+ * the frame selected by MIN(count_m7, count_m33) is always a frame that both
+ * cores actually wrote.
+ */
+static void core_realign_counters (
+   flow_safe_core_t * core,
+   uint32_t k,
+   const core_inputs_msg_t * peer)
+{
+   const uint32_t tx_common = CORE_MIN (core->tx_count[k], peer->tx_index);
+   const uint32_t rx_common = CORE_MIN (core->rx_count[k], peer->rx_index);
+
+   if (tx_common < core->tx_count[k])
+   {
+      flow_shm_commit (&core->env.shm->tx[k][core->env.id], tx_common);
+      core->tx_count[k] = tx_common;
+   }
+
+   core->rx_count[k] = rx_common;
+}
+
 static void core_crosscheck_inputs (flow_safe_core_t * core)
 {
    uint32_t k;
@@ -661,6 +662,9 @@ static void core_crosscheck_inputs (flow_safe_core_t * core)
       message.state = (uint8_t)core->sync[k].current_state;
       message.sent_frame_type = (uint8_t)core->sync[k].sent_frame_type;
       message.recv_frame_type = (uint8_t)core->sync[k].received_frame_type;
+      message.tx_index = core->tx_count[k];
+      message.rx_index = core->rx_count[k];
+      message.rx_digest = core->latched[k].digest;
       message.anomalies = core->anomalies;
       memcpy (message.inputs, &core->raw_inputs[k], FLOW_SAFE_DATA_SIZE);
 
@@ -710,6 +714,44 @@ static void core_crosscheck_inputs (flow_safe_core_t * core)
 
       peer_message = (const core_inputs_msg_t *)peer.payload;
       core_merge_anomalies (core, peer_message->anomalies);
+
+      /* ---- SHMEM counters and RX frame identity -------------------------
+       * A divergence of the counters (or two cores working on different RX
+       * frames) is a fault: it brings the pair fail-safe and it is re-aligned
+       * to MIN(own, peer) on both cores in the same cycle. */
+      if ((message.tx_index != peer_message->tx_index) ||
+          (message.rx_index != peer_message->rx_index) ||
+          (message.rx_digest != peer_message->rx_digest))
+      {
+         if (message.tx_index != peer_message->tx_index)
+         {
+            core->stats.tx_index_faults++;
+         }
+         if ((message.rx_index != peer_message->rx_index) ||
+             (message.rx_digest != peer_message->rx_digest))
+         {
+            core->stats.rx_index_faults++;
+         }
+
+         LOG_ERROR (core->env.tag,
+            "SHMEM COUNTER MISMATCH k=%u: tx_index own|peer %u|%u, "
+            "rx_index own|peer %u|%u, rx_digest own|peer 0x%08x|0x%08x "
+            "-> fail-safe, re-aligning to MIN()",
+            k,
+            (unsigned)message.tx_index,
+            (unsigned)peer_message->tx_index,
+            (unsigned)message.rx_index,
+            (unsigned)peer_message->rx_index,
+            message.rx_digest,
+            peer_message->rx_digest);
+
+         memset (&core->safe_inputs[k], 0, sizeof (core->safe_inputs[k]));
+         core_set_sending_enabled (core, k, false);
+         core_note_anomaly (core, "SHMEM counter divergence");
+         core_request_reset (core, k);
+         core_realign_counters (core, k, peer_message);
+         continue;
+      }
 
       match = (memcmp (
                   message.inputs,
@@ -840,9 +882,20 @@ static void core_run_logic (flow_safe_core_t * core)
          continue;
       }
 
-      core->safe_outputs[k] = next_outputs;
       core->stats.logic_ok++;
-      core_set_sending_enabled (core, k, true);
+
+      if (core->cycle_fault)
+      {
+         /* A cross-check failed somewhere in this cycle: the freshly computed
+          * outputs are not sent (the stack will send FailSafeData). */
+         memset (&core->safe_outputs[k], 0, sizeof (core->safe_outputs[k]));
+         core_set_sending_enabled (core, k, false);
+      }
+      else
+      {
+         core->safe_outputs[k] = next_outputs;
+         core_set_sending_enabled (core, k, true);
+      }
 
       LOG_DETAIL (core->env.tag,
          "k=%u logic OK: in=0x%02x%02x out=0x%04x/0x%04x digest=0x%08x",
@@ -881,15 +934,15 @@ static void core_cycle (flow_safe_core_t * core)
 {
    core->cycle++;
    core->stats.cycles++;
+   core->cycle_fault = false;
 
-   /* 1. Local latch of the raw frames received from the SHMEM mailbox. */
-   flow_shmem_cores_enter_cycle (core->env.shm, core->cycle);
+   /* 1. Local latch of the raw frames received from the SHMEM mailbox.
+    *    Every core uses its own RX counter, nothing is announced. */
    core_latch_rx (core);
 
    /* 2. FSoE stack synchronisation (inversion of control). The egress PDU
-    *    cross-check and the SHMEM 2-phase commit happen inside this call. */
+    *    cross-check and the publication of the frame happen inside this call. */
    core_sync (core);
-   flow_shmem_cores_exit_cycle (core->env.shm);
 
    /* 3. Cross-check of the decoded SafeInputs and of the status. */
    core_crosscheck_inputs (core);
@@ -960,8 +1013,8 @@ void flow_safe_core_init (flow_safe_core_t * core, const flow_core_env_t * env)
       memset (&core->safe_outputs[k], 0, sizeof (core->safe_outputs[k]));
       memset (&core->sync[k], 0, sizeof (core->sync[k]));
       flow_fsoe_slot_clear (&core->latched[k]);
-      core->latched_published[k] = 0u;
-      core->provided_published[k] = 0u;
+      core->rx_count[k] = 0u;
+      core->tx_count[k] = 0u;
       core->send_enabled[k] = false;
 
       flow_app_ctx_init (

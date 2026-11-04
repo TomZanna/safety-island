@@ -18,11 +18,13 @@
 typedef enum flow_fault_type
 {
    FLOW_FAULT_NONE = 0,
-   FLOW_FAULT_SESSION,  /**< M33 corrupts its Session ID random number      */
+   FLOW_FAULT_SESSION,  /**< M33 corrupts its negotiated Session ID         */
    FLOW_FAULT_PDU,      /**< M33 corrupts the generated FSoE PDU digest     */
    FLOW_FAULT_INPUTS,   /**< M33 corrupts the decoded SafeInputs            */
    FLOW_FAULT_LOGIC,    /**< M33 corrupts the computed SafeOutputs digest   */
    FLOW_FAULT_BUSDROP,  /**< A55 drops frames coming from the safe cores    */
+   FLOW_FAULT_STALL,    /**< a core does not publish its frame (drift)      */
+   FLOW_FAULT_FRAME,    /**< data half corrupted in SHMEM after the check   */
 } flow_fault_type_t;
 
 typedef struct flow_fault_cfg

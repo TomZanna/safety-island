@@ -97,6 +97,7 @@ APP_SRC := \
 	glue/fsoe_app_glue.c \
 	app/fault_inject.c \
 	app/flow_setup.c \
+	app/self_test.c \
 	app/runtime.c \
 	app/main.c
 

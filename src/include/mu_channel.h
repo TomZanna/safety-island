@@ -37,9 +37,8 @@ typedef enum mu_node
 typedef enum mu_chan
 {
    MU_CHAN_SESSION_ID = 0, /**< Session ID negotiation (M7 <-> M33)          */
-   MU_CHAN_RX_SNAPSHOT,    /**< M7 tells M33 which SHMEM RX bank it latched  */
    MU_CHAN_EGRESS_PDU,     /**< Digest of the FSoE PDU generated for k       */
-   MU_CHAN_SAFE_INPUTS,    /**< Decoded SafeInputs + status of connection k  */
+   MU_CHAN_SAFE_INPUTS,    /**< SafeInputs + status + counters of k          */
    MU_CHAN_SAFE_LOGIC,     /**< Safe logic outputs + internal state          */
    MU_CHAN_COUNT
 } mu_chan_t;
@@ -95,6 +94,14 @@ typedef struct mu_bus
 const char * mu_node_name (mu_node_t node);
 const char * mu_chan_name (mu_chan_t chan);
 mu_node_t mu_node_peer (mu_node_t node);
+
+/* Frame split between the two cores (see the "Frame split / assembly" section
+ * of fsoe_slot.h):
+ *  - MU_CRC_NODE  contributes the CRC words of the assembled FSoE frame
+ *  - MU_DATA_NODE contributes command + safety data + Connection ID
+ * The A55 interleaves the two contributions. */
+#define MU_CRC_NODE MU_NODE_M7
+#define MU_DATA_NODE MU_NODE_M33
 
 void mu_bus_init (mu_bus_t * bus);
 void mu_bus_close (mu_bus_t * bus);

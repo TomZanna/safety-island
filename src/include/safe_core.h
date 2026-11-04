@@ -6,7 +6,7 @@
  *
  *   1. deterministic safe tick + local latch of the raw RX frames
  *   2. FSoE stack synchronisation (fsoemaster_sync_with_slave) with the
- *      egress PDU cross-check and the SHMEM 2-phase commit
+ *      egress PDU cross-check and the publication of the frame in SHMEM
  *   3. cross-check of the decoded SafeInputs and of the connection status
  *   4. safe logic execution and cross-check of the computed SafeOutputs
  */
@@ -35,10 +35,13 @@ typedef struct flow_core_stats
    uint32_t cycles;
    uint32_t frames_sent;
    uint32_t frames_received;
+   uint32_t tx_published;
    uint32_t pdu_matches;
    uint32_t pdu_mismatches;
    uint32_t egress_timeouts;
-   uint32_t commit_failures;
+   uint32_t tx_index_faults;
+   uint32_t rx_index_faults;
+   uint32_t tx_verify_failures;
    uint32_t inputs_ok;
    uint32_t inputs_mismatches;
    uint32_t logic_ok;
@@ -81,8 +84,8 @@ typedef struct flow_safe_core
 
    /* Local RAM copy of the raw RX frames (diagram step 1) */
    flow_fsoe_slot_t latched[FLOW_NUM_CONNECTIONS];
-   uint32_t latched_published[FLOW_NUM_CONNECTIONS];
-   uint32_t provided_published[FLOW_NUM_CONNECTIONS];
+   uint32_t rx_count[FLOW_NUM_CONNECTIONS]; /**< RX frames consumed        */
+   uint32_t tx_count[FLOW_NUM_CONNECTIONS]; /**< TX frames published       */
 
    flow_safe_inputs_t safe_inputs[FLOW_NUM_CONNECTIONS];
    flow_safe_inputs_t raw_inputs[FLOW_NUM_CONNECTIONS];
@@ -93,6 +96,7 @@ typedef struct flow_safe_core
 
    uint32_t cycle;
    uint32_t anomalies;   /**< Divergence counter, kept equal on both cores  */
+   bool cycle_fault;     /**< A cross-check failed in the current cycle     */
    uint32_t data_state_cycles;
 
    flow_core_stats_t stats;

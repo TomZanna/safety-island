@@ -37,7 +37,7 @@ static void main_usage (const char * program)
    printf ("  --a55-ms MS         black channel bus cycle (default %u)\n",
       (unsigned)FLOW_A55_CYCLE_MS);
    printf ("  --seed N            RNG seed, makes the run reproducible\n");
-   printf ("  --fault NAME        none|session|pdu|inputs|logic|busdrop\n");
+   printf ("  --fault NAME        none|session|pdu|inputs|logic|busdrop|stall|frame\n");
    printf ("  --fault-cycle N     safe cycle (bus cycle for busdrop) of the fault\n");
    printf ("  --fault-count N     how many cycles the fault lasts\n");
    printf ("  --connections N     number of FSoE connections (compile time, =%u)\n",
