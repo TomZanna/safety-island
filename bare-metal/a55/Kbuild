@@ -1,0 +1,14 @@
+# Out-of-tree Kbuild for the A55 transport driver.
+#
+# Build with:
+#   make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
+#
+# The driver only depends on the shared mailbox layout and the portable A55
+# merge, both compiled through flow_a55_portable.c.
+
+obj-m += flow_a55.o
+
+flow_a55-y := flow_a55_drv.o flow_a55_portable.o
+
+ccflags-y += -I$(src)/../include -I$(src)
+ccflags-y += -DFLOW_DEBUG=0 -DFLOW_A55_DEBUG=0

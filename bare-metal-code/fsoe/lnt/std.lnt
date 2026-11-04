@@ -1,0 +1,120 @@
+// Set base warning level for library code to "Error messages only"
+// Add dummy transition 4->1 to avoid 0 length zone transition warning from Lint if wlib is alread at level 1
+-wlib(4)
+-wlib(1)
+
+// Disable warning for use of _Bool outside of typedef [MISRA 2012 Directive 4.6, advisory]
+-esym(970, _Bool)
+
+// Disable warning "zero given as argument to operator"
+-e835
+
+// Disable warning for use of function-like macros [MISRA 2012 Directive 4.9, advisory]
+-e9026
+
+// Disable warnings for FSOEPORT_ASSERT()
+-emacro(970,  FSOEPORT_ASSERT) // use of modifier or type outside of a typedef
+-emacro(9007, FSOEPORT_ASSERT) // side effects on right hand of logical operator [MISRA 2012 Rule 13.5 (Req)]
+-emacro(9008, FSOEPORT_ASSERT) // comma operator used [MISRA 2012 Rule 12.3 (Adv)]
+-emacro(9027, FSOEPORT_ASSERT) // inappropriate operand to operator [ MISRA 2012 Rule 10.1 (Req)]
+-emacro(9080, FSOEPORT_ASSERT) // integer null pointer constant used  [ MISRA 2012 Rule 11.9 (Req)]
+// Disable info for FSOEPORT_ASSERT()
+-emacro(730, FSOEPORT_ASSERT) // boolean used as argument integer to function symbol
+
+// Disable warning "enum constant symbol not used within default switch"
+-e788
+
+// Disable warning for use of unions [MISRA 2012 Rule 19.2, advisory].
+-e9018
+
+// Disable warnings for macro expansions of FSOELOG_DEBUG(), FSOELOG_INFO(),
+// FSOELOG_WARNING() and FSOELOG_ERROR()
+// Use of logging is turned off by default
+-emacro(717,  FSOELOG*) // use of do-while(0) construct
+-emacro(774,  FSOELOG*) // boolean condition always evaluates to true/false. MISRA 2012 Rule 14.3 (Req)
+-emacro(778,  FSOELOG*) // constant expression evaluates to 0 in binary operation
+-emacro(845,  FSOELOG*) // left/right operand to operator always evaluates to 0
+-emacro(1564, FSOELOG*) // converting integer constant expression to bool
+
+// Disable warning for use of public function names with more than 31 characters
+-estring(793, "significant characters in an external identifier")
+
+// Disable warning regarding type conversions from void* to uint8_t*
+// as uint8_t has no alignment requirements.
+// [MISRA 2012 Rule 11.3 (required) and 11.5 (advisory)]
+-etype(9079, "const uint8_t *")
+-etype(9079, "uint8_t *")
+// Do the above for PC-LINT v9.00
+-efunc(9079, fsoesracrc_update)
+-efunc(9079, fsoeframe_get_data)
+-efunc(9079, fsoeframe_set_data)
+-efunc(9079, fsoeframe_IS_SAFEDATA_CORRECT)
+
+// Disable warning "complete definition of symbol is unnecessary in this
+// translation unit" [MISRA 2012 Directive 4.8, advisory].
+// As to allow for static allocation, the structure of otherwise
+// encapsulated objects are exposed in public header files.
+-esym(9045, fsoeframe*)
+
+// Disable warnings for CalcCrc() as it was copied from
+// ETG.5100 and is thus considered correct. See ETG.5100 Annex A.
+-efunc(730,  fsoeframe_add_crc_words)  // boolean used as argument
+-efunc(730,  fsoeframe_IS_CRC_CORRECT) // boolean used as argument
+-efunc(732,  fsoeframe_CalcCrc) // loss of sign
+-efunc(818,  fsoeframe_CalcCrc) // lack of const qualifier [MISRA 2012 Rule 8.13 (Adv)]
+-efunc(2662, fsoeframe_CalcCrc) // pointer arithmetics
+-efunc(9005, fsoeframe_CalcCrc) // cast dropping const qualifier [MISRA 2012 Rule 11.8 (Req)]
+-efunc(9016, fsoeframe_CalcCrc) // pointer arithmethic via addition [MISRA 2012 Rule 18.4 (Adv)]
+-efunc(9027, fsoeframe_CalcCrc) // inappropriate operand to operator [ MISRA 2012 Rule 10.1 (Req)]
+-efunc(9044, fsoeframe_CalcCrc) // modifying function argument [ MISRA 2012 Rule 17.8 (Adv)]
+-efunc(9050, fsoeframe_CalcCrc) // relying on operator precedence [MISRA 2012 Rule 12.1 (Adv)]
+
+// Disable the warning for "Repeated include file". Not necessary if
+// all header files have include-guards.
+-e537
+-e451
+
+// Tell Lint that the following functions have no side-effects
+// Needed to avoid warnings for code like
+//    if (fabs(x) > fabs(y))
+-sem(fsoeframe_is_overflowed, pure)
+
+// Ignoring return value of the following functions is considered a violation of MISRA-C 2012 Rule 17.7
+// For these case however this has been determined to be safe, since to information is error information according to Directive 4.7
+-esym(534,memcpy,memmove,memset)                // Memory functions
+
+// Lint does not like offsetof !!
+-emacro((413),offsetof)
+-emacro((545),offsetof)
+-emacro((946),offsetof)
+-emacro((947),offsetof)
+-emacro((9033),offsetof)
+
+// MISRA 2012 Rule 2.4, advisory
+-e9058 // Disabled due to false positives when using tag name == struct name
+
+// MISRA 2012 Rule 2.5, advisory
+-e755 // Remove warnings for global macros not beeing referenced (seems to give false positives)
+
+// MISRA 2012 Rule 10.1, required
+-estring(9027,[]) // Disabled due to false positive when accessing an array element of a const struct with a bool array.
+
+// MISRA 2013 Rule 10.3, required
+-e9034 // Disabled due to false positives when assigning TRUE and FALSE to BOOL
+
+// MISRA 2013 Rule 10.4, required
+-e9029 // Disabled due to false positives when assigning TRUE and FALSE to BOOL
+
+// MISRA 2012 Rule 12.1, advisory
+-estring(9050,`*,%,+,-,<,==,&&,/,"!=") //SC Note: Remove all warnings related to combinations of *, %, +, -, ==, &&, /, != to reduce number of needed parenthesis.
+
+// MISRA 2013 Rule 14.4, required
+-e9036 // Disabled due to false positives when assigning TRUE and FALSE to BOOL
+
+// Lint warning 2414, Non-standard literal suffix 'string'
+// This message is issued when a non-standard, non-user-defined, numeric literal suffix.
+// The use of non-standard literal suffixes is not portable.
+// Ignore for stdint.h MACRO
+-emacro(2414, UINT32_MAX)
+-emacro(2414, UINT16_MAX)
+

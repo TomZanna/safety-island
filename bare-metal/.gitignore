@@ -1,0 +1,9 @@
+build/
+*.o
+*.a
+*.d
+*.elf
+*.ko
+*.mod
+*.mod.c
+.tmp_versions/
