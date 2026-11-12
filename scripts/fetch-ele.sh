@@ -5,6 +5,7 @@
 #   - non interattivo (CI, docker): ACCEPT_ELE_EULA=1 significa "ho letto e accetto la EULA NXP"
 source "$(dirname "$0")/common.sh"
 
+: "${ELE_URL:?passato dal target CMake ele}"
 name="$(basename "$ELE_URL")"
 work="$DEPS/ele"
 mkdir -p "$work" "$BUILD/ele"
@@ -19,7 +20,7 @@ if [ "${ACCEPT_ELE_EULA:-}" = 1 ]; then
 elif [ -t 0 ]; then
     flag=()
 else
-    die "terminale non interattivo: per accettare la EULA NXP imposta ACCEPT_ELE_EULA=1"
+    die "terminale non interattivo: per accettare la EULA NXP configura con -DACCEPT_ELE_EULA=ON (significa: ho letto e accetto la EULA NXP)"
 fi
 
 pkg="${name%.bin}"
@@ -30,6 +31,6 @@ rm -rf "$work/$pkg"
 src="$work/$pkg/mx943a0-ahab-container.img"
 [ -f "$src" ] || die "$pkg non contiene mx943a0-ahab-container.img (versione senza i.MX94?)"
 cp "$src" "$BUILD/ele/"
-(cd "$BUILD/ele" && sha256sum -c --quiet "$ROOT/prebuilt/ele.sha256") \
-    || die "sha256 diverso da prebuilt/ele.sha256: versione ELE cambiata? Verifica la compatibilita' con SM_TAG e aggiorna il file"
-info "ok: build/ele/mx943a0-ahab-container.img (sha256 verificato)"
+(cd "$BUILD/ele" && sha256sum -c --quiet "$ROOT/ele/ele.sha256") \
+    || die "sha256 diverso da ele/ele.sha256: versione ELE cambiata? Verifica la compatibilita' con SM_TAG e aggiorna il file"
+info "ok: $BUILD/ele/mx943a0-ahab-container.img (sha256 verificato)"

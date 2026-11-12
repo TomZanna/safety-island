@@ -1,0 +1,34 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "mx94evk",
+      "inherits": "base",
+      "displayName": "SM mx94evk (Linux + M7)",
+      "cacheVariables": { "SM_CONFIG": "mx94evk" }
+    },
+    {
+      "name": "mx94alt",
+      "inherits": "base",
+      "displayName": "SM mx94alt (demo SDK MCUXpresso)",
+      "cacheVariables": { "SM_CONFIG": "mx94alt" }
+    },
+    {
+      "name": "docker",
+      "inherits": "base",
+      "displayName": "Dentro docker/ (target image)",
+      "cacheVariables": { "SM_CONFIG": "mx94evk" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "mx94evk", "configurePreset": "mx94evk" },
+    { "name": "mx94alt", "configurePreset": "mx94alt" },
+    { "name": "docker", "configurePreset": "docker" }
+  ]
+}

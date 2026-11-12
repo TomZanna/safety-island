@@ -1,0 +1,17 @@
+# cmake -DFILE=<file> -DSUMS=<file sha256sum> -P VerifySha256.cmake
+# Cerca in SUMS la riga del nome di FILE e confronta lo sha256.
+get_filename_component(name "${FILE}" NAME)
+if(NOT EXISTS "${FILE}")
+    message(FATAL_ERROR "${FILE} non esiste")
+endif()
+file(STRINGS "${SUMS}" lines REGEX "[ *]${name}$")
+list(LENGTH lines n)
+if(NOT n EQUAL 1)
+    message(FATAL_ERROR "nessuna riga per ${name} in ${SUMS}")
+endif()
+string(REGEX MATCH "^[0-9a-f]+" expected "${lines}")
+file(SHA256 "${FILE}" actual)
+if(NOT actual STREQUAL expected)
+    message(FATAL_ERROR "sha256 di ${name} non valido\n  atteso:  ${expected}\n  trovato: ${actual}")
+endif()
+message(STATUS "sha256 ok: ${name}")

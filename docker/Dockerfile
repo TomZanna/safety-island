@@ -1,19 +1,9 @@
-# Ambiente di build: gcc per mkimage, toolchain ARM per l'SM, git per i sorgenti NXP.
-# Non serve per flash/uart/debug (USB), solo per sm e image.
-#
-# Il toolchain ARM NON viene scaricato: si passa come named build context "toolchain"
-# (make docker-env lo prende da TOOLCHAIN_DIR). Gli URL di developer.arm.com provati
-# per 15.3.rel2 rispondono 404, quindi non sono inseribili come default.
+# Ambiente per il target "image" senza installare nulla sull'host:
+# cmake per il superbuild, gcc/make per compilare mkimage_imx8, git per scaricarlo,
+# python3 per l'ispezione. L'SM ha il suo Docker dedicato e riproducibile: sm/Dockerfile.
 FROM ubuntu:24.04
-
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential git ca-certificates curl make python3 srecord \
+        build-essential cmake git ca-certificates curl xz-utils make python3 \
     && rm -rf /var/lib/apt/lists/*
-
-COPY --from=toolchain / /opt/tools/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi
-ENV TOOLS=/opt/tools
-RUN test -x /opt/tools/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc \
-    && /opt/tools/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc --version | head -1
-
 WORKDIR /work

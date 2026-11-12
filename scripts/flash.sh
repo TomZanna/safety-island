@@ -22,12 +22,30 @@ fi
 
 sdp_present() { "$UUU" -lsusb 2>&1 | grep -q 'MX943'; }
 
-if ! sdp_present; then
-    info "board non in SDP: provo il reset dal monitor SM"
-    ( "$ROOT/scripts/reset.sh" ) || true
-    for _ in $(seq 1 15); do sleep 1; sdp_present && break; done
+# Il monitor SM risponde? (prompt ">$"). Serve perche' uuu -lsusb continua a elencare
+# la ROM (MX943) anche quando l'SM sta gia' girando: non e' un indicatore affidabile.
+monitor_alive() {
+    [ -c "$SM_UART" ] || return 1
+    local tmp; tmp="$(mktemp)"
+    stty -F "$SM_UART" 115200 raw -echo
+    exec 4<>"$SM_UART"
+    timeout 1.5 cat <&4 >"$tmp" & local rd=$!
+    sleep 0.2; printf '\r\n' >&4; wait $rd || true
+    exec 4>&-
+    grep -q '>\$' "$tmp"; local rc=$?; rm -f "$tmp"; return $rc
+}
+
+if monitor_alive; then
+    info "SM in esecuzione: reset dal monitor per tornare in serial download"
+    "$ROOT/scripts/reset.sh"
+    sleep 3
 fi
+for _ in $(seq 1 15); do sdp_present && break; sleep 1; done
 sdp_present || die "nessuna board MX943 in serial download (SW boot-mode? cavo USB?)"
 
 info "uuu SDPS: boot -f $uuu_img"
-timeout 120 "$UUU" SDPS: boot -f "$uuu_img" 2>&1 | tr '\r' '\n' | grep -E 'Okay|Fail|Error' | tail -3
+log="$(timeout 120 "$UUU" SDPS: boot -f "$uuu_img" 2>&1 | tr '\r' '\n')" || true
+echo "$log" | grep -E 'Okay|Fail|Error' | tail -3
+echo "$log" | grep -q 'Fail\|Error' && die "caricamento fallito: reset manuale della board e riprova"
+info "caricata in RAM"
+exit 0
