@@ -3,7 +3,7 @@
 set(SM_CONFIG "mx94evk" CACHE STRING "Config SM: mx94evk (Linux + M7) | mx94alt (demo SDK)")
 set_property(CACHE SM_CONFIG PROPERTY STRINGS mx94evk mx94alt)
 set(SM_BIN "" CACHE FILEPATH "SM alternativo da provare (vuoto = sm/sm_<SM_CONFIG>.bin); niente verifica sha256")
-set(SM_TAG "lf-6.12.20-2.0.0" CACHE STRING "Tag imx-sm per sm-verify/sm-update (deve combaciare con ELE 2.0.2)")
+set(SM_TAG "lf-6.18.20-2.0.0" CACHE STRING "Tag imx-sm per sm-verify/sm-update (deve combaciare con ELE 2.0.6)")
 set(SM_REPO "https://github.com/nxp-imx/imx-sm.git" CACHE STRING "Repo imx-sm")
 set(SM_CONFIGS "mx94evk;mx94alt" CACHE STRING "Config compilate da sm-verify/sm-update")
 

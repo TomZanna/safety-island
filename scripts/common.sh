@@ -9,23 +9,14 @@ BUILD="${SI_BUILD_DIR:-$ROOT/build/mx94evk}"
 DEPS="$BUILD/_deps"
 mkdir -p "$DEPS"
 
-: "${SM_UART:=/dev/ttyUSB3}"
+: "${SM_UART:=/dev/serial/by-id/usb-FTDI_Quad_RS232-HS-if03-port0}"
 : "${SM_CONFIG:=mx94evk}"
 : "${JLINK_CORE:=M33_0}"
 : "${JLINK_PORT:=2331}"
 : "${ELF:=}"
-: "${TOOLS:=}"
 
 die()  { echo "ERRORE: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
 is_wsl() { grep -qi microsoft /proc/version 2>/dev/null; }
 
-find_tools() {
-    if [ -n "${TOOLS:-}" ]; then echo "$TOOLS"; return; fi
-    local d
-    for d in /opt/tools /; do
-        if compgen -G "$d/arm-gnu-toolchain-*-x86_64-arm-none-eabi" >/dev/null; then echo "$d"; return; fi
-    done
-    die "toolchain arm-gnu-toolchain-*-x86_64-arm-none-eabi non trovato: imposta ARM_TOOLS (cache CMake)"
-}

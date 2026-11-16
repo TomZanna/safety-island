@@ -1,0 +1,108 @@
+// Debug J-Link con l'estensione Cortex-Debug (marus25.cortex-debug).
+//   "Tutti i core: run + attach": build con WAIT_DEBUGGER=ON (ogni core aspetta il suo debugger prima di
+//        main), caricamento, terminali RTT, poi attach a M7_0, M7_1, M33S. Ogni attach ferma il core
+//        (J-Link) e lo sblocca dall'attesa (g_debugger_go): parte quando premi Continue in quella sessione.
+//   "Tutti i core: attach": attach ai core gia' in esecuzione (+ terminali RTT).
+//   "<core>: attach": un solo core. Il core si sceglie dal Call Stack / tendina della barra di debug.
+// I compounds avviano tutto insieme: M7_1 e M33S aspettano 0.5 e 1 s (preLaunchTask "Attendi"), e il GDB
+// server parte da scripts/jlink-gdbserver.sh, che riprova se la sonda e' occupata (max 5 connessioni).
+// RTT: control block condiviso a 0x204D0000, un canale per core: task "RTT: M7_0/M7_1/M33S".
+// Variabili a core in esecuzione: vista "Cortex Live Watch" (per sessione).
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "M7_0: attach",
+            "type": "cortex-debug",
+            "request": "attach",
+            "servertype": "jlink",
+            "serverpath": "${workspaceFolder}/scripts/jlink-gdbserver.sh",
+            "device": "MIMX94398_M7_0",
+            "interface": "swd",
+            "executable": "${workspaceFolder}/build/mx94evk/fw/m70/m70.elf",
+            "gdbPath": "${workspaceFolder}/ext/toolchain/bin/arm-none-eabi-gdb",
+            "postAttachCommands": [
+                "set var g_debugger_go = 1"
+            ],
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "M7_1: attach",
+            "type": "cortex-debug",
+            "request": "attach",
+            "servertype": "jlink",
+            "serverpath": "${workspaceFolder}/scripts/jlink-gdbserver.sh",
+            "device": "MIMX94398_M7_1",
+            "interface": "swd",
+            "executable": "${workspaceFolder}/build/mx94evk/fw/m71/m71.elf",
+            "gdbPath": "${workspaceFolder}/ext/toolchain/bin/arm-none-eabi-gdb",
+            "preLaunchTask": "Attendi 0.5 s",
+            "postAttachCommands": [
+                "set var g_debugger_go = 1"
+            ],
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "M33S: attach",
+            "type": "cortex-debug",
+            "request": "attach",
+            "servertype": "jlink",
+            "serverpath": "${workspaceFolder}/scripts/jlink-gdbserver.sh",
+            "device": "MIMX94398_M33_1",
+            "interface": "swd",
+            "executable": "${workspaceFolder}/build/mx94evk/fw/m33s/m33s.elf",
+            "gdbPath": "${workspaceFolder}/ext/toolchain/bin/arm-none-eabi-gdb",
+            "preLaunchTask": "Attendi 1 s",
+            "postAttachCommands": [
+                "set var g_debugger_go = 1"
+            ],
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "M33_0 (SM): attach",
+            "type": "cortex-debug",
+            "request": "attach",
+            "servertype": "jlink",
+            "serverpath": "${workspaceFolder}/scripts/jlink-gdbserver.sh",
+            "device": "MIMX94398_M33_0",
+            "interface": "swd",
+            "executable": "${workspaceFolder}/build/mx94evk/sm-docker/sm_mx94evk.elf",
+            "gdbPath": "${workspaceFolder}/ext/toolchain/bin/arm-none-eabi-gdb",
+            "cwd": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Tutti i core: run + attach",
+            "configurations": [
+                "M7_0: attach",
+                "M7_1: attach",
+                "M33S: attach"
+            ],
+            "preLaunchTask": "Run (attesa debugger) + RTT",
+            "stopAll": true
+        },
+        {
+            "name": "Tutti i core: attach",
+            "configurations": [
+                "M7_0: attach",
+                "M7_1: attach",
+                "M33S: attach"
+            ],
+            "preLaunchTask": "RTT: tutti",
+            "stopAll": true
+        }
+    ]
+}

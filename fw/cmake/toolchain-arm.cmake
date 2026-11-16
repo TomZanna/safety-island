@@ -1,0 +1,12 @@
+# Toolchain arm-none-eabi (bare metal). ARMGCC_DIR arriva dal superbuild (deps/CMakeLists.txt).
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+if(NOT ARMGCC_DIR)
+    message(FATAL_ERROR "ARMGCC_DIR non impostato")
+endif()
+set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES ARMGCC_DIR)
+set(CMAKE_C_COMPILER   "${ARMGCC_DIR}/bin/arm-none-eabi-gcc")
+set(CMAKE_ASM_COMPILER "${ARMGCC_DIR}/bin/arm-none-eabi-gcc")
+set(CMAKE_OBJCOPY      "${ARMGCC_DIR}/bin/arm-none-eabi-objcopy" CACHE FILEPATH "")
+set(CMAKE_SIZE         "${ARMGCC_DIR}/bin/arm-none-eabi-size" CACHE FILEPATH "")
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)

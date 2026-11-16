@@ -23,7 +23,7 @@
       "name": "docker",
       "inherits": "base",
       "displayName": "Dentro docker/ (target image)",
-      "cacheVariables": { "SM_CONFIG": "mx94evk" }
+      "cacheVariables": { "SM_CONFIG": "mx94evk", "FW_APPS": "OFF" }
     }
   ],
   "buildPresets": [

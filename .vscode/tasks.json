@@ -1,0 +1,181 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceFolder}"
+    },
+    "tasks": [
+        {
+            "label": "Build",
+            "detail": "make image: app di fw/ + flash.bin",
+            "type": "shell",
+            "command": "make image",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": "absolute"
+            }
+        },
+        {
+            "label": "Run",
+            "detail": "make run: build (core partono subito), reset, caricamento in RAM con uuu",
+            "type": "shell",
+            "command": "cmake --preset mx94evk -DM33S_WAIT_DEBUGGER=OFF -DM70_WAIT_DEBUGGER=OFF -DM71_WAIT_DEBUGGER=OFF >/dev/null && make run",
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": "absolute"
+            }
+        },
+        {
+            "label": "Run (attesa debugger)",
+            "detail": "come Run, ma ogni core aspetta il suo debugger prima di main (WAIT_DEBUGGER=ON)",
+            "type": "shell",
+            "command": "cmake --preset mx94evk -DM33S_WAIT_DEBUGGER=ON -DM70_WAIT_DEBUGGER=ON -DM71_WAIT_DEBUGGER=ON >/dev/null && make run",
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": "absolute"
+            }
+        },
+        {
+            "label": "Reset (serial download)",
+            "type": "shell",
+            "command": "make reset",
+            "problemMatcher": []
+        },
+        {
+            "label": "Deps: sync SDK (west update)",
+            "type": "shell",
+            "command": "make deps",
+            "problemMatcher": []
+        },
+        {
+            "label": "USB: stato",
+            "type": "shell",
+            "command": "make usb-status",
+            "problemMatcher": []
+        },
+        {
+            "label": "UART: monitor SM",
+            "type": "shell",
+            "command": "make uart",
+            "isBackground": true,
+            "presentation": {
+                "panel": "dedicated",
+                "focus": false,
+                "group": "uart"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "RTT: M7_0",
+            "detail": "canale RTT di M7_0 (input diretto)",
+            "type": "shell",
+            "command": "make rtt-m70",
+            "isBackground": true,
+            "presentation": {
+                "panel": "dedicated",
+                "focus": false,
+                "group": "rtt"
+            },
+            "problemMatcher": {
+                "owner": "rtt",
+                "pattern": {
+                    "regexp": "^__nessun_errore__$"
+                },
+                "background": {
+                    "activeBegins": true,
+                    "beginsPattern": "^cmake --build",
+                    "endsPattern": "==> RTT "
+                }
+            }
+        },
+        {
+            "label": "RTT: M7_1",
+            "detail": "canale RTT di M7_1 (input diretto)",
+            "type": "shell",
+            "command": "make rtt-m71",
+            "isBackground": true,
+            "presentation": {
+                "panel": "dedicated",
+                "focus": false,
+                "group": "rtt"
+            },
+            "problemMatcher": {
+                "owner": "rtt",
+                "pattern": {
+                    "regexp": "^__nessun_errore__$"
+                },
+                "background": {
+                    "activeBegins": true,
+                    "beginsPattern": "^cmake --build",
+                    "endsPattern": "==> RTT "
+                }
+            }
+        },
+        {
+            "label": "RTT: M33S",
+            "detail": "canale RTT di M33S (input diretto)",
+            "type": "shell",
+            "command": "make rtt-m33s",
+            "isBackground": true,
+            "presentation": {
+                "panel": "dedicated",
+                "focus": false,
+                "group": "rtt"
+            },
+            "problemMatcher": {
+                "owner": "rtt",
+                "pattern": {
+                    "regexp": "^__nessun_errore__$"
+                },
+                "background": {
+                    "activeBegins": true,
+                    "beginsPattern": "^cmake --build",
+                    "endsPattern": "==> RTT "
+                }
+            }
+        },
+        {
+            "label": "RTT: tutti",
+            "detail": "un terminale RTT per core (M7_0, M7_1, M33S)",
+            "dependsOn": [
+                "RTT: M7_0",
+                "RTT: M7_1",
+                "RTT: M33S"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Attendi 0.5 s",
+            "detail": "ritardo per gli attach dei compounds (GDB server sfasati)",
+            "type": "shell",
+            "command": "sleep 0.5",
+            "presentation": {
+                "reveal": "never"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Attendi 1 s",
+            "detail": "ritardo per gli attach dei compounds (GDB server sfasati)",
+            "type": "shell",
+            "command": "sleep 1",
+            "presentation": {
+                "reveal": "never"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run (attesa debugger) + RTT",
+            "detail": "Run (attesa debugger), poi i terminali RTT di tutti i core",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Run (attesa debugger)",
+                "RTT: tutti"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

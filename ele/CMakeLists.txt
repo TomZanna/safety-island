@@ -1,6 +1,6 @@
 # Firmware ELE NXP: proprietario, non committato. Lo scarica scripts/fetch-ele.sh.
-set(ELE_URL "https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/firmware-ele-imx-2.0.2-89161a8.bin"
-    CACHE STRING "Pacchetto firmware-ele-imx (2.0.2: contiene mx943a0, la 1.3.0 no)")
+set(ELE_URL "https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/firmware-ele-imx-2.0.6-c0b284c.bin"
+    CACHE STRING "Pacchetto firmware-ele-imx (2.0.6 = LF 6.18.20, quello di SM_TAG; contiene ancora mx943a0)")
 option(ACCEPT_ELE_EULA "Ho letto e accetto la EULA NXP del firmware ELE (serve senza terminale, es. Docker)" OFF)
 set(ELE_IMAGE "" CACHE FILEPATH "Container ELE gia' disponibile (vuoto = scarica ELE_URL); niente verifica sha256")
 

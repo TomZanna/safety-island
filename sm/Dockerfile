@@ -16,10 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential git ca-certificates curl xz-utils srecord perl \
     && rm -rf /var/lib/apt/lists/*
 
-# Toolchain: 14.2.rel1 e' il TC_VERSION di sm/makefiles/common.mak nel tag lf-6.12.20-2.0.0.
+# Toolchain: 15.2.rel1 e' il TC_VERSION di sm/makefiles/common.mak nel tag lf-6.18.20-2.0.0.
 # Lo sha256 e' quello pubblicato da Arm (<url>.sha256asc).
-ARG TC_VERSION=14.2.rel1
-ARG TC_SHA256=62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823
+ARG TC_VERSION=15.2.rel1
+ARG TC_SHA256=597893282ac8c6ab1a4073977f2362990184599643b4c5ee34870a8215783a16
 RUN curl -fsSL -o /tmp/tc.tar.xz \
         "https://developer.arm.com/-/media/Files/downloads/gnu/${TC_VERSION}/binrel/arm-gnu-toolchain-${TC_VERSION}-x86_64-arm-none-eabi.tar.xz" \
     && echo "${TC_SHA256}  /tmp/tc.tar.xz" | sha256sum -c - \
@@ -29,8 +29,18 @@ RUN curl -fsSL -o /tmp/tc.tar.xz \
 COPY date-wrapper.sh /usr/local/bin/date
 
 ARG SM_REPO=https://github.com/nxp-imx/imx-sm.git
-ARG SM_TAG=lf-6.12.20-2.0.0
+ARG SM_TAG=lf-6.18.20-2.0.0
 RUN git clone -q -c advice.detachedHead=false --single-branch --branch "${SM_TAG}" "${SM_REPO}" /src/imx-sm
+
+# Patch locali (sm/patches/*.patch, in ordine): per ogni configs/<cfg>.cfg toccato si rigenera
+# configs/<cfg>/ con configtool.pl (deterministico: sul cfg originale da' gli stessi header del tag).
+COPY patches/ /patches/
+RUN set -e; cd /src/imx-sm; \
+    for p in $(ls /patches/*.patch 2>/dev/null | sort); do git apply --whitespace=nowarn "$p"; done; \
+    for c in $(git diff --name-only -- 'configs/*.cfg' | sed -n 's|^configs/\(.*\)\.cfg$|\1|p'); do \
+        ./configs/configtool.pl -i "configs/$c.cfg" -o "configs/$c" >/dev/null; \
+    done; \
+    git status --short
 
 ARG SM_CONFIGS="mx94evk mx94alt"
 RUN set -e; cd /src/imx-sm; \
@@ -44,7 +54,9 @@ RUN set -e; cd /src/imx-sm; \
     done; \
     { echo "SM_TAG=${SM_TAG}"; echo "SM_COMMIT=$(git rev-parse HEAD)"; \
       echo "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"; echo "TC_VERSION=${TC_VERSION}"; \
-      echo "TC_SHA256=${TC_SHA256}"; } > /out/BUILDINFO; \
+      echo "TC_SHA256=${TC_SHA256}"; \
+      for p in $(ls /patches/*.patch 2>/dev/null | sort); do echo "PATCH=$(basename "$p") $(sha256sum < "$p" | cut -c1-64)"; done; \
+    } > /out/BUILDINFO; \
     cd /out && sha256sum sm_*.bin > SHA256SUMS
 
 # Solo gli artefatti: estratti con --output type=local

@@ -1,0 +1,12 @@
+[Unit]
+Description=safety-island: attach automatico dei dispositivi USB (usbip da usbipd-win)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=@SCRIPTS@/usb-attach.sh --conf @CONF@
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

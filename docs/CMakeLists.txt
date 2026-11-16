@@ -5,9 +5,9 @@ set(TYPST_SHA256 "7d214bfeffc2e585dc422d1a09d2b144969421281e8c7f5d784b65fc69b567
     CACHE STRING "sha256 di typst-x86_64-unknown-linux-musl.tar.xz")
 set(DOCS_VIEWER "" CACHE STRING "Visualizzatore per docs-live (es. wslview); vuoto = non apre nulla")
 
-si_tool(TYPST NAME typst VERSION ${TYPST_VERSION}
-    URL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
-    SHA256 ${TYPST_SHA256} EXE typst)
+si_tool(TYPST NAME typst VERSION ${TYPST_VERSION} EXE typst
+    linux-x86_64 "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
+    ${TYPST_SHA256})
 
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.typ")
 set(pdf "${CMAKE_BINARY_DIR}/docs/safety-island.pdf")

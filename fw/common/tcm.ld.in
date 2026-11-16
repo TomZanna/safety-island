@@ -1,0 +1,157 @@
+/*
+ * Linker script per i core secondari i.MX94 (M33S, M7_0, M7_1): codice e dati nei TCM, niente DDR.
+ * Generato da fw/cmake/imx94.cmake (configure_file). Layout come i *_ram.ld del SDK MCUXpresso:
+ *   vettori @LD_VECTORS@, codice @LD_TEXT@ (+@LD_TEXT_SIZE@), dati @LD_DATA@ (+@LD_DATA_SIZE@),
+ *   non-cacheable @LD_NCACHE@ (+@LD_NCACHE_SIZE@). Simboli usati da startup_*.S e system_*.c del SDK.
+ */
+ENTRY(Reset_Handler)
+
+HEAP_SIZE  = DEFINED(__heap_size__)  ? __heap_size__  : 0x1000;
+STACK_SIZE = DEFINED(__stack_size__) ? __stack_size__ : 0x1000;
+
+MEMORY
+{
+  m_interrupts (RX) : ORIGIN = @LD_VECTORS@, LENGTH = 0x2000
+  m_text       (RX) : ORIGIN = @LD_TEXT@,    LENGTH = @LD_TEXT_SIZE@
+  m_data       (RW) : ORIGIN = @LD_DATA@,    LENGTH = @LD_DATA_SIZE@
+  m_ncache     (RW) : ORIGIN = @LD_NCACHE@,  LENGTH = @LD_NCACHE_SIZE@
+}
+
+SECTIONS
+{
+  .interrupts :
+  {
+    __VECTOR_TABLE = .;
+    __Vectors = .;
+    . = ALIGN(4);
+    KEEP(*(.isr_vector))
+    . = ALIGN(4);
+  } > m_interrupts
+
+  .text :
+  {
+    . = ALIGN(4);
+    *(.text)
+    *(.text*)
+    *(.rodata)
+    *(.rodata*)
+    *(.glue_7)
+    *(.glue_7t)
+    *(.eh_frame)
+    KEEP (*(.init))
+    KEEP (*(.fini))
+    . = ALIGN(4);
+  } > m_text
+
+  .ARM.extab : { *(.ARM.extab* .gnu.linkonce.armextab.*) } > m_text
+  .ARM :
+  {
+    __exidx_start = .;
+    *(.ARM.exidx*)
+    __exidx_end = .;
+  } > m_text
+
+  .preinit_array :
+  {
+    PROVIDE_HIDDEN (__preinit_array_start = .);
+    KEEP (*(.preinit_array*))
+    PROVIDE_HIDDEN (__preinit_array_end = .);
+  } > m_text
+  .init_array :
+  {
+    PROVIDE_HIDDEN (__init_array_start = .);
+    KEEP (*(SORT(.init_array.*)))
+    KEEP (*(.init_array*))
+    PROVIDE_HIDDEN (__init_array_end = .);
+  } > m_text
+  .fini_array :
+  {
+    PROVIDE_HIDDEN (__fini_array_start = .);
+    KEEP (*(SORT(.fini_array.*)))
+    KEEP (*(.fini_array*))
+    PROVIDE_HIDDEN (__fini_array_end = .);
+  } > m_text
+
+  __etext = .;
+  __DATA_ROM = .;
+
+  .data : AT(__DATA_ROM)
+  {
+    . = ALIGN(4);
+    __DATA_RAM = .;
+    __data_start__ = .;
+    *(.data)
+    *(.data*)
+    KEEP(*(.jcr*))
+    . = ALIGN(4);
+    __data_end__ = .;
+  } > m_data
+
+  __NCACHE_REGION_START = ORIGIN(m_ncache);
+  __NCACHE_REGION_SIZE  = LENGTH(m_ncache);
+  __NDATA_ROM = __DATA_ROM + SIZEOF(.data);
+  .ncache.init : AT(__NDATA_ROM)
+  {
+    __noncachedata_start__ = .;
+    *(NonCacheable.init)
+    . = ALIGN(4);
+    __noncachedata_init_end__ = .;
+  } > m_ncache
+  . = __noncachedata_init_end__;
+  .ncache :
+  {
+    *(NonCacheable)
+    . = ALIGN(4);
+    __noncachedata_end__ = .;
+  } > m_ncache
+
+  __DATA_END = __NDATA_ROM + SIZEOF(.ncache.init);
+  ASSERT(__DATA_END <= ORIGIN(m_text) + LENGTH(m_text), "m_text pieno (codice + dati iniziali)")
+
+  .bss :
+  {
+    . = ALIGN(4);
+    __START_BSS = .;
+    __bss_start__ = .;
+    *(.bss)
+    *(.bss*)
+    *(COMMON)
+    . = ALIGN(4);
+    __bss_end__ = .;
+    __END_BSS = .;
+  } > m_data
+
+  .heap :
+  {
+    . = ALIGN(8);
+    __end__ = .;
+    PROVIDE(end = .);
+    __HeapBase = .;
+    . += HEAP_SIZE;
+    __HeapLimit = .;
+    __heap_limit = .;
+  } > m_data
+
+  .stack :
+  {
+    . = ALIGN(8);
+    . += STACK_SIZE;
+  } > m_data
+
+  __StackTop   = ORIGIN(m_data) + LENGTH(m_data);
+  __StackLimit = __StackTop - STACK_SIZE;
+  PROVIDE(__stack = __StackTop);
+  ASSERT(__StackLimit >= __HeapLimit, "m_data pieno (dati + heap + stack)")
+
+  /* Control block RTT condiviso da tutti i core (fw/common/rtt_shared.h, OCRAM condivisa dalla patch
+   * SM): il simbolo serve ai tool (Cortex-Debug "address": "auto", gdb) */
+  _SEGGER_RTT = 0x204D0000;
+
+  /* Resource table per remoteproc/RPMsg con Linux: non usata. Il SDK la azzera in SystemInit()
+   * (SystemInitMemoryRegions) e per gli M7 sta in DDR, che flash.bin non inizializza: con
+   * fine < inizio il SDK salta il memset. */
+  __RscTblShareWithMpuStart = 1;
+  __RscTblShareWithMpuEnd = 0;
+
+  .ARM.attributes 0 : { *(.ARM.attributes) }
+}

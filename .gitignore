@@ -7,3 +7,7 @@ prefix/
 CMakeLists.txt.user
 CMakeUserPresets.json
 compile_commands.json
+
+# dipendenze scaricate (toolchain, SDK via west) e workspace west
+ext/
+.west/

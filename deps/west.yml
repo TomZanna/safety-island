@@ -1,0 +1,36 @@
+# Dipendenze esterne del firmware: SDK MCUXpresso minimo (solo 4 repo NXP), pinnato per commit.
+# Sincronizzazione: "make deps" (o il primo build), che fa "west update" quando questo file cambia.
+# Workspace west: topdir = radice di safety-island (.west/), sorgenti in ext/sdk/ (entrambi gitignored).
+# Per aggiornare: cambia le revision (SHA completi) e ricompila; prova sulla board prima di committare.
+manifest:
+  remotes:
+    - name: nxp-mcuxpresso
+      url-base: https://github.com/nxp-mcuxpresso
+  defaults:
+    remote: nxp-mcuxpresso
+  projects:
+    # driver (common, lpuart, mu1, cache), componenti (scmi, smt), cmake/linker di base
+    - name: core
+      repo-path: mcuxsdk-core
+      path: ext/sdk/mcuxsdk
+      revision: b2cee0c457e7e59bd85379fe835076f864260b93
+      clone-depth: 1
+    # header, startup, system, linker e driver di clock/power del MIMX94398
+    - name: mcux-devices-imx
+      path: ext/sdk/mcuxsdk/devices/i.MX
+      revision: c80524e51b7e87baf36fe9028a8994a9947e98d7
+      clone-depth: 1
+    # componenti: client SCMI (scmi, smt, imx_sm_crc) per parlare con il System Manager
+    - name: mcu-sdk-components
+      repo-path: mcux-component
+      path: ext/sdk/mcuxsdk/components
+      revision: b59d44a900ea5ecf18bc0e4616363c935462d2f3
+      clone-depth: 1
+    # CMSIS Core (core_cm7.h, core_cm33.h)
+    - name: CMSIS
+      repo-path: mcu-sdk-cmsis
+      path: ext/sdk/mcuxsdk/arch/arm/CMSIS
+      revision: 6cadb0dd51370a6460989b60cc94755316da9714
+      clone-depth: 1
+  self:
+    path: deps

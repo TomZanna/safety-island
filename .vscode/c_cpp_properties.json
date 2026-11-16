@@ -1,0 +1,13 @@
+{
+    // IntelliSense (cpptools) dal compile_commands.json unico delle tre app, scritto da "make image"/"make fw".
+    "version": 4,
+    "configurations": [
+        {
+            "name": "i.MX94 fw",
+            "compileCommands": "${workspaceFolder}/build/mx94evk/compile_commands.json",
+            "compilerPath": "${workspaceFolder}/ext/toolchain/bin/arm-none-eabi-gcc",
+            "intelliSenseMode": "gcc-arm",
+            "cStandard": "gnu11"
+        }
+    ]
+}

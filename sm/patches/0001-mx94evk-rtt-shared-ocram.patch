@@ -1,0 +1,32 @@
+safety-island: 16 KB di OCRAM (0x204D0000) condivisi da M33S, M7_0 e M7_1 per il control block RTT
+comune (un canale per core). L'area resta anche dell'AP (OCRAM AP-NS 0x204C0000+96K).
+
+--- a/configs/mx94evk.cfg
++++ b/configs/mx94evk.cfg
+@@ -413,6 +413,8 @@
+ 
+ # Memory
+ 
++OCRAM               DATA, begin=0x0204D0000, size=16K  # RTT condiviso (safety-island)
++
+ OCRAM_S1            EXEC, begin=0x020800000, end=0x02087FFFF
+ OCRAM_S2            EXEC, begin=0x020880000, end=0x0208FFFFF
+ OCRAM_S3            EXEC, begin=0x020900000, end=0x02097FFFF
+@@ -594,6 +596,8 @@
+ 
+ # Memory
+ 
++OCRAM               DATA, begin=0x0204D0000, size=16K  # RTT condiviso (safety-island)
++
+ M7MIX0              DATA, begin=0x020380000, end=0x02047FFFF
+ M7MIX0              DATA, begin=0x04A060000, end=0x04A09FFFF
+ DDR                 EXEC, begin=0x080000000, end=0x080FFFFFF
+@@ -700,6 +704,8 @@
+ 
+ # Memory
+ 
++OCRAM               DATA, begin=0x0204D0000, size=16K  # RTT condiviso (safety-island)
++
+ M7MIX1              DATA, begin=0x020280000, end=0x02037FFFF
+ M7MIX1              DATA, begin=0x049C60000, end=0x049C9FFFF
+ DDR                 EXEC, begin=0x081000000, end=0x081FFFFFF

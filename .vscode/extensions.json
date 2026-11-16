@@ -1,7 +1,8 @@
 {
     "recommendations": [
-        "mhutchie.git-graph",
+        "marus25.cortex-debug",
         "ms-vscode.cpptools-extension-pack",
+        "mhutchie.git-graph",
         "myriad-dreamin.tinymist",
         "anthropic.claude-code",
         "github.vscode-github-actions"
