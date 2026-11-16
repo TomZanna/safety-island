@@ -70,8 +70,8 @@ add_custom_target(usb-setup COMMAND ${env} "${SI_SCRIPTS}/usb-setup.sh" USES_TER
 add_dependencies(usb-setup uuu-tool bcu-tool)
 add_custom_target(usb-status COMMAND ${env} "${SI_SCRIPTS}/usb-status.sh" USES_TERMINAL VERBATIM)
 
-# Console RTT (un canale per core, control block condiviso): rtt = tutti i core in un terminale,
-# rtt-<app> = solo quel core (input diretto). Piu' console su core diversi possono stare aperte insieme.
+# Console RTT da terminale (un canale per core, control block condiviso): rtt = tutti i core,
+# rtt-<app> = solo quel core (input diretto). In VS Code l'RTT lo legge Cortex-Debug (rttConfig).
 add_custom_target(rtt COMMAND ${env} "${SI_SCRIPTS}/rtt.sh" USES_TERMINAL VERBATIM)
 foreach(app m33s m70 m71)
     si_script_env(rtt_env ${common_env} "RTT_CHANNEL=${app}")

@@ -1,12 +1,13 @@
 // Debug J-Link con l'estensione Cortex-Debug (marus25.cortex-debug).
 //   "Tutti i core: run + attach": build con WAIT_DEBUGGER=ON (ogni core aspetta il suo debugger prima di
-//        main), caricamento, terminali RTT, poi attach a M7_0, M7_1, M33S. Ogni attach ferma il core
+//        main), caricamento, poi attach a M7_0, M7_1 (+0.5 s), M33S (+1 s). L'attach ferma il core
 //        (J-Link) e lo sblocca dall'attesa (g_debugger_go): parte quando premi Continue in quella sessione.
-//   "Tutti i core: attach": attach ai core gia' in esecuzione (+ terminali RTT).
+//   "Tutti i core: attach": attach ai core gia' in esecuzione.
 //   "<core>: attach": un solo core. Il core si sceglie dal Call Stack / tendina della barra di debug.
-// I compounds avviano tutto insieme: M7_1 e M33S aspettano 0.5 e 1 s (preLaunchTask "Attendi"), e il GDB
-// server parte da scripts/jlink-gdbserver.sh, che riprova se la sonda e' occupata (max 5 connessioni).
-// RTT: control block condiviso a 0x204D0000, un canale per core: task "RTT: M7_0/M7_1/M33S".
+// GDB server da scripts/jlink-gdbserver.sh: riprova se la sonda e' occupata da un'apertura contemporanea.
+// RTT nativo di Cortex-Debug: control block condiviso a 0x204D0000, ogni sessione legge il canale del suo
+// core (m33s 0, m70 1, m71 2; Cortex-Debug lo sceglie sul telnet RTT del suo GDB server): un terminale
+// "RTT <core>" per sessione. Non aprire "make rtt" sugli stessi canali durante il debug.
 // Variabili a core in esecuzione: vista "Cortex Live Watch" (per sessione).
 {
     "version": "0.2.0",
@@ -24,6 +25,18 @@
             "postAttachCommands": [
                 "set var g_debugger_go = 1"
             ],
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x204D0000",
+                "decoders": [
+                    {
+                        "label": "RTT m70",
+                        "port": 1,
+                        "type": "console",
+                        "noclear": true
+                    }
+                ]
+            },
             "liveWatch": {
                 "enabled": true,
                 "samplesPerSecond": 4
@@ -44,6 +57,18 @@
             "postAttachCommands": [
                 "set var g_debugger_go = 1"
             ],
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x204D0000",
+                "decoders": [
+                    {
+                        "label": "RTT m71",
+                        "port": 2,
+                        "type": "console",
+                        "noclear": true
+                    }
+                ]
+            },
             "liveWatch": {
                 "enabled": true,
                 "samplesPerSecond": 4
@@ -64,6 +89,18 @@
             "postAttachCommands": [
                 "set var g_debugger_go = 1"
             ],
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x204D0000",
+                "decoders": [
+                    {
+                        "label": "RTT m33s",
+                        "port": 0,
+                        "type": "console",
+                        "noclear": true
+                    }
+                ]
+            },
             "liveWatch": {
                 "enabled": true,
                 "samplesPerSecond": 4
@@ -91,7 +128,7 @@
                 "M7_1: attach",
                 "M33S: attach"
             ],
-            "preLaunchTask": "Run (attesa debugger) + RTT",
+            "preLaunchTask": "Run (attesa debugger)",
             "stopAll": true
         },
         {
@@ -101,7 +138,6 @@
                 "M7_1: attach",
                 "M33S: attach"
             ],
-            "preLaunchTask": "RTT: tutti",
             "stopAll": true
         }
     ]

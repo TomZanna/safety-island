@@ -27,8 +27,10 @@ sdp_present() { "$UUU" -lsusb 2>&1 | grep -q 'MX943'; }
 # anche quando l'SM sta gia' girando. FLASH_NO_RESET=1 salta il reset (board appena resettata a mano).
 load() {
     if [ -z "${FLASH_NO_RESET:-}" ]; then
-        # l'hub RTT resterebbe collegato a core che si resettano: lo si chiude (i terminali si chiudono)
-        "$ROOT/scripts/rtt.sh" --stop
+        # una console RTT (make rtt) resterebbe collegata a core che si resettano: la si chiude
+        for p in $(pgrep -f "$ROOT/ext/venv/bin/python" || true); do
+            grep -q "scripts/rtt.py" "/proc/$p/cmdline" 2>/dev/null && kill -INT "$p" && info "chiusa la console RTT aperta"
+        done
         RESET_METHOD="${1:-$RESET_METHOD}" "$ROOT/scripts/reset.sh" || return 1
         sleep 1.5   # la ROM si ri-enumera: in WSL il servizio usbip la ri-attacca in ~1-2 s
     fi

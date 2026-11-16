@@ -69,82 +69,14 @@
             "problemMatcher": []
         },
         {
-            "label": "RTT: M7_0",
-            "detail": "canale RTT di M7_0 (input diretto)",
+            "label": "RTT: tutti (terminale)",
+            "detail": "make rtt: canali RTT di tutti i core fuori dal debug (in debug li mostra Cortex-Debug)",
             "type": "shell",
-            "command": "make rtt-m70",
-            "isBackground": true,
+            "command": "make rtt",
             "presentation": {
                 "panel": "dedicated",
-                "focus": false,
-                "group": "rtt"
+                "focus": true
             },
-            "problemMatcher": {
-                "owner": "rtt",
-                "pattern": {
-                    "regexp": "^__nessun_errore__$"
-                },
-                "background": {
-                    "activeBegins": true,
-                    "beginsPattern": "^cmake --build",
-                    "endsPattern": "==> RTT "
-                }
-            }
-        },
-        {
-            "label": "RTT: M7_1",
-            "detail": "canale RTT di M7_1 (input diretto)",
-            "type": "shell",
-            "command": "make rtt-m71",
-            "isBackground": true,
-            "presentation": {
-                "panel": "dedicated",
-                "focus": false,
-                "group": "rtt"
-            },
-            "problemMatcher": {
-                "owner": "rtt",
-                "pattern": {
-                    "regexp": "^__nessun_errore__$"
-                },
-                "background": {
-                    "activeBegins": true,
-                    "beginsPattern": "^cmake --build",
-                    "endsPattern": "==> RTT "
-                }
-            }
-        },
-        {
-            "label": "RTT: M33S",
-            "detail": "canale RTT di M33S (input diretto)",
-            "type": "shell",
-            "command": "make rtt-m33s",
-            "isBackground": true,
-            "presentation": {
-                "panel": "dedicated",
-                "focus": false,
-                "group": "rtt"
-            },
-            "problemMatcher": {
-                "owner": "rtt",
-                "pattern": {
-                    "regexp": "^__nessun_errore__$"
-                },
-                "background": {
-                    "activeBegins": true,
-                    "beginsPattern": "^cmake --build",
-                    "endsPattern": "==> RTT "
-                }
-            }
-        },
-        {
-            "label": "RTT: tutti",
-            "detail": "un terminale RTT per core (M7_0, M7_1, M33S)",
-            "dependsOn": [
-                "RTT: M7_0",
-                "RTT: M7_1",
-                "RTT: M33S"
-            ],
             "problemMatcher": []
         },
         {
@@ -165,16 +97,6 @@
             "presentation": {
                 "reveal": "never"
             },
-            "problemMatcher": []
-        },
-        {
-            "label": "Run (attesa debugger) + RTT",
-            "detail": "Run (attesa debugger), poi i terminali RTT di tutti i core",
-            "dependsOrder": "sequence",
-            "dependsOn": [
-                "Run (attesa debugger)",
-                "RTT: tutti"
-            ],
             "problemMatcher": []
         }
     ]
