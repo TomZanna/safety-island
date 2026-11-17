@@ -1,3 +1,4 @@
+// clang-format off
 /**
  * @file flow_mu18.h
  * @brief MU18: l'unica MU fra due core secondari dell'i.MX94 EVK (config SM
@@ -12,8 +13,9 @@
  * bindano e le funzioni falliscono chiuse.
  *
  * Ogni core raggiunge fisicamente solo il proprio lato. La MU ha 4 registri TR
- * e 4 RR da 32 bit (16 byte per direzione), quindi NON puo' portare i nostri
- * messaggi di cross-check (23..72 byte): porta il doorbell
+ * e 4 RR da 32 bit (16 byte per direzione), quindi NON puo' portare un
+ * messaggio di cross-check (24 byte di header piu' il payload, 28..52 byte con
+ * i payload di oggi): porta il doorbell
  *   TR0 = {seq[15:0], tag[7:0], channel[7:0]}
  *   TR1 = CRC-32 del payload che sta in flow_icc (OCRAM)
  * e il ricevente ricalcola il CRC del payload: due mezzi indipendenti devono
@@ -24,11 +26,12 @@
  *
  * \mermaid
  * flowchart LR
- *   ICC["flow_icc slot<br/>88 B in OCRAM"] -->|payload| MU["MU18<br/>doorbell
- * 16 B"] MU -->|"TR0 = {seq, tag, channel}<br/>TR1 = CRC-32"| PEER["peer"] PEER
- * -->|"ricalcola CRC-32"| ICC
+ *   ICC["slot ICC<br/>88 B in OCRAM"] -->|payload| MU["MU18<br/>doorbell 16 B"]
+ *   MU -->|"TR0 = {seq, tag, channel}<br/>TR1 = CRC-32"| PEER["peer"]
+ *   PEER -->|"ricalcola CRC-32"| ICC
  * \endmermaid
  */
+// clang-format on
 #ifndef SI_FLOW_MU18_H
 #define SI_FLOW_MU18_H
 
@@ -91,10 +94,10 @@ bool flow_mu18_ping(flow_u32 value, flow_u32 timeout_us, flow_u32* peer_value);
 /** Contatori diagnostici del link. */
 typedef struct flow_mu18_stats
 {
-  flow_u32 sent;
-  flow_u32 received;
-  flow_u32 tx_timeouts;
-  flow_u32 rx_timeouts;
+  flow_u32 sent; /**< coppie TR0/TR1 scritte */
+  flow_u32 received; /**< coppie RR0/RR1 lette */
+  flow_u32 tx_timeouts; /**< TR0/TR1 mai liberi entro il timeout */
+  flow_u32 rx_timeouts; /**< nessuna coppia entro il timeout */
 } flow_mu18_stats_t;
 
 /** @brief Contatori diagnostici del link MU18.

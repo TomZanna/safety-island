@@ -6,6 +6,11 @@
  * fw/fieldbus.
  * @ingroup flow
  *
+ * I parametri sono costanti di flow_config.h e arrivano dallo stack come due
+ * uint16 little endian: qui si ricompongono a mano per non dipendere
+ * dall'allineamento del buffer ricevuto. Un valore diverso significa che master
+ * e slave non condividono la stessa configurazione, quindi la connessione va
+ * rifiutata (FSOEAPP_STATUS_BAD_APP_PARAMETER).
  */
 #include "flow_app_parameters.h"
 

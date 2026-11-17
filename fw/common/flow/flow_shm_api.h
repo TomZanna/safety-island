@@ -1,3 +1,4 @@
+// clang-format off
 /**
  * @file flow_shm_api.h
  * @brief FONTE UNICA della mailbox in memoria condivisa fra i core secondari.
@@ -29,6 +30,7 @@
  *   F --> RX["rx<br/>una per ciclo safe"]
  * \endmermaid
  */
+// clang-format on
 #ifndef SI_FLOW_SHM_API_H
 #define SI_FLOW_SHM_API_H
 
@@ -41,8 +43,10 @@
 #define FLOW_SHM_MAGIC 0x464C4F57u /**< "FLOW" */
 #define FLOW_SHM_PROTOCOL_ID 0x494D5839u /**< "IMX9" */
 
-/** Stato dell'header: 0 = non inizializzata (mai pubblicata), 1 = READY,
- * 2 = FAULT. Solo READY e' uno stato valido per chi legge. */
+/** Stato dell'header. Oggi si scrive un solo stato, 1 = READY: il valore 0 e'
+ * il contenuto iniziale della memoria (mai pubblicata) e ogni altro valore e'
+ * riservato all'ABI. Chi legge accetta solo READY e tratta il resto come "non
+ * pronta", quindi una mailbox a meta' inizializzazione non viene mai usata. */
 #define FLOW_SHM_STATE_READY 1u
 
 /** Nodi che possiedono una meta' del frame TX (indici di tx[conn][node]). */
@@ -57,26 +61,35 @@
 
 /** Padding che tiene ogni slot allineato a 4 byte. */
 #define FLOW_SHM_PDU_PAD ((4u - (FLOW_PDU_MAX % 4u)) % 4u)
+
+/** Dimensioni d'ABI: non si ricavano a runtime e i static assert qui sotto le
+ * confrontano con le struct. L'header copre se stesso, un banco e' uno slot, un
+ * canale e' contatore + seqlock + banchi. */
 #define FLOW_SHM_HEADER_SIZE 64u
 #define FLOW_SHM_SLOT_SIZE (12u + FLOW_PDU_MAX + FLOW_SHM_PDU_PAD)
 #define FLOW_SHM_CHANNEL_SIZE (16u + (FLOW_SHM_BANKS * FLOW_SHM_SLOT_SIZE))
 
-/** @brief Header della mailbox: identita, versione, geometria e stato. */
+/** @brief Header della mailbox: identita, versione, geometria e stato.
+ *
+ * `magic` e' l'ultimo campo pubblicato (store release): chi lo vede vede tutto
+ * il resto. `layout_hash` identifica il layout atteso da questo build e si
+ * confronta per uguaglianza, non si calcola a runtime.
+ */
 typedef struct FLOW_PACKED flow_shm_header
 {
-  flow_u32 magic;
-  flow_u32 protocol_id;
-  flow_u32 version;
-  flow_u32 layout_hash;
+  flow_u32 magic; /**< FLOW_SHM_MAGIC, pubblicato per ultimo */
+  flow_u32 protocol_id; /**< FLOW_SHM_PROTOCOL_ID ("IMX9") */
+  flow_u32 version; /**< FLOW_SHM_VERSION: cambia con l'ABI */
+  flow_u32 layout_hash; /**< FLOW_SHM_LAYOUT_HASH, confronto esatto */
 
-  flow_u32 conn_count;
-  flow_u32 banks;
-  flow_u32 slot_size;
-  flow_u32 header_size;
+  flow_u32 conn_count; /**< connessioni: FLOW_NUM_CONNECTIONS */
+  flow_u32 banks; /**< banchi per canale: FLOW_SHM_BANKS */
+  flow_u32 slot_size; /**< FLOW_SHM_SLOT_SIZE */
+  flow_u32 header_size; /**< FLOW_SHM_HEADER_SIZE (offset del primo canale) */
 
-  flow_u32 state;
-  flow_u32 heartbeat[FLOW_CORE_COUNT];
-  flow_u32 reserved[4];
+  flow_u32 state; /**< FLOW_SHM_STATE_READY quando la mailbox e' valida */
+  flow_u32 heartbeat[FLOW_CORE_COUNT]; /**< ultimo ciclo visto da ogni ruolo */
+  flow_u32 reserved[4]; /**< riservato, deve essere 0 */
 } flow_shm_header_t;
 
 /** @brief Slot PDU con metadati protetti da CRC-16. */
@@ -87,8 +100,8 @@ typedef struct FLOW_PACKED flow_shm_slot
   flow_u32 fc; /**< contatore di frame del black channel */
   flow_u16 hdr_crc; /**< CRC-16 su len, flags, fc, reserved */
   flow_u16 reserved; /**< deve essere 0 */
-  flow_u8 pdu[FLOW_PDU_MAX];
-  flow_u8 pad[FLOW_SHM_PDU_PAD];
+  flow_u8 pdu[FLOW_PDU_MAX]; /**< payload del frame FSoE */
+  flow_u8 pad[FLOW_SHM_PDU_PAD]; /**< allinea lo slot a 4 byte */
 } flow_shm_slot_t;
 
 /** @brief Canale TX/RX: 3 banchi con seqlock e contatore. */
@@ -96,7 +109,7 @@ typedef struct FLOW_PACKED flow_shm_channel
 {
   flow_u32 count; /**< frame pubblicati (monotono) */
   flow_u32 bank_seq[FLOW_SHM_BANKS]; /**< seqlock: dispari = scrittura */
-  flow_shm_slot_t bank[FLOW_SHM_BANKS];
+  flow_shm_slot_t bank[FLOW_SHM_BANKS]; /**< 3 copie: mai quella in uso */
 } flow_shm_channel_t;
 
 /** @brief Mailbox completa: header, canali TX per nodo e RX. */

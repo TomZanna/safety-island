@@ -105,7 +105,8 @@ bool flow_platform_mu_wait(flow_core_id_t self,
 
 /** @brief Servizio del watchdog esterno.
  *
- * @note Oggi non abilitato: il watchdog FSoE e' quello dello stack.
+ * @note Non abilitato: WDOG5/6/7 restano spenti (vedi @ref limiti) e la
+ *       sorveglianza e' quella dello stack FSoE.
  */
 void flow_platform_watchdog_kick(void);
 

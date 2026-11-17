@@ -5,6 +5,10 @@
  * slave FSoE. Non prende decisioni di sicurezza e non ripara niente.
  * @ingroup flow_field
  *
+ * Il merge usa MIN(count_CRC, count_dati): un frame e' completo solo quando
+ * entrambi i core hanno pubblicato lo stesso indice. Se i contatori tornano
+ * indietro (riallineamento dopo un fault) non si rigioca un frame vecchio: ci
+ * si risincronizza sul nuovo MIN e si aspetta il successivo.
  */
 #include "flow_a55.h"
 

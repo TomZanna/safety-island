@@ -7,6 +7,10 @@
  * fw/fieldbus/fieldbus_main.c).
  * @ingroup flow
  *
+ * L'ordine e' identita' del core, piattaforma, banner: dopo questa chiamata i
+ * log hanno il tag giusto e il tick e' quello del ruolo. Mailbox, ICC e
+ * selftest non sono qui perche' il loro ordine cambia fra i ruoli: il FIELDBUS
+ * e' owner e inizializza, i core safe aspettano.
  */
 #include "flow_init.h"
 

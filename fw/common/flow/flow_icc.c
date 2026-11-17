@@ -4,6 +4,16 @@
  * MU18.
  * @ingroup flow_icc
  *
+ * L'ordine delle scritture e' il protocollo: prima metadati e payload con una
+ * fence di release, poi `seq` con store release. Chi vede il nuovo `seq` vede
+ * tutto il resto, e il lettore ricontrolla che `seq` non sia cambiato mentre
+ * copiava. Il CRC viene verificato due volte, sullo slot OCRAM e sul doorbell
+ * MU18: se i due mezzi non concordano e' un'anomalia, non un ritardo.
+ *
+ * Contatori diagnostici e sequenze TX sono privati del core (`static`), non
+ * stanno nella zona condivisa: ognuno misura se stesso e non serve
+ * sincronizzarli. Anche il ciclo visto da flow_icc_cycle_wait() e' stato
+ * privato della funzione: parte da zero e riconosce il primo cambio.
  */
 #include "flow_icc.h"
 

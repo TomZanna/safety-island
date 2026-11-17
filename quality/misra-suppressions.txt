@@ -24,10 +24,10 @@
 # 3) fsoeport_macros.h: FSOEPORT_IS_BIG_ENDIAN e FSOEPORT_ASSERT sono richiesti
 #    dallo stack FSoE; le nostre TU li includono senza usarli.
 # --------------------------------------------------------------------------
-misra-c2012-2.5:fw/common/flow/flow_config.h:70
-misra-c2012-2.5:fw/common/flow/flow_config.h:71
-misra-c2012-2.5:fw/common/flow/port/fsoeport_macros.h:16
-misra-c2012-2.5:fw/common/flow/port/fsoeport_macros.h:20
+misra-c2012-2.5:fw/common/flow/flow_config.h:75
+misra-c2012-2.5:fw/common/flow/flow_config.h:76
+misra-c2012-2.5:fw/common/flow/port/fsoeport_macros.h:15
+misra-c2012-2.5:fw/common/flow/port/fsoeport_macros.h:19
 misra-c2012-2.5:fw/common/fsoe/include/fsoeapp.h:74
 misra-c2012-2.5:fw/common/fsoe/include/fsoemaster.h:119
 misra-c2012-2.5:fw/common/fsoe/include/fsoemaster.h:128
@@ -70,33 +70,33 @@ misra-c2012-2.5:fw/common/fsoe/include/fsoeslave.h:288
 # static compare piu' volte con lo stesso nome. Nei singoli binari i nomi sono
 # unici (verificato: --cppcheck-build-dir non cambia il risultato).
 # --------------------------------------------------------------------------
-misra-c2012-5.9:fw/common/flow/flow_icc.c:19
-misra-c2012-5.9:fw/common/flow/flow_icc.c:20
-misra-c2012-5.9:fw/common/flow/flow_icc.c:21
-misra-c2012-5.9:fw/common/flow/flow_icc.c:28
-misra-c2012-5.9:fw/common/flow/flow_mu.c:20
-misra-c2012-5.9:fw/common/flow/flow_mu.c:34
-misra-c2012-5.9:fw/common/flow/flow_selftest.c:22
-misra-c2012-5.9:fw/common/flow/flow_selftest.c:35
-misra-c2012-5.9:fw/common/flow/flow_selftest.c:44
-misra-c2012-5.9:fw/common/flow/flow_selftest.c:58
-misra-c2012-5.9:fw/common/flow/flow_selftest.c:113
-misra-c2012-5.9:fw/common/flow/flow_shm.c:33
-misra-c2012-5.9:fw/common/flow/flow_shm.c:45
-misra-c2012-5.9:fw/safe/flow_safe.c:24
-misra-c2012-5.9:fw/safe/flow_safe.c:92
+misra-c2012-5.9:fw/common/flow/flow_icc.c:29
+misra-c2012-5.9:fw/common/flow/flow_icc.c:30
+misra-c2012-5.9:fw/common/flow/flow_icc.c:31
+misra-c2012-5.9:fw/common/flow/flow_icc.c:38
+misra-c2012-5.9:fw/common/flow/flow_mu.c:30
+misra-c2012-5.9:fw/common/flow/flow_mu.c:44
+misra-c2012-5.9:fw/common/flow/flow_selftest.c:30
+misra-c2012-5.9:fw/common/flow/flow_selftest.c:43
+misra-c2012-5.9:fw/common/flow/flow_selftest.c:52
+misra-c2012-5.9:fw/common/flow/flow_selftest.c:66
+misra-c2012-5.9:fw/common/flow/flow_selftest.c:121
+misra-c2012-5.9:fw/common/flow/flow_shm.c:44
+misra-c2012-5.9:fw/common/flow/flow_shm.c:56
+misra-c2012-5.9:fw/safe/flow_safe.c:35
 misra-c2012-5.9:fw/safe/flow_safe.c:103
-misra-c2012-5.9:fw/safe/flow_safe.c:120
-misra-c2012-5.9:fw/safe/flow_safe.c:132
-misra-c2012-5.9:fw/safe/flow_safe.c:150
-misra-c2012-5.9:fw/safe/flow_safe.c:176
-misra-c2012-5.9:fw/safe/flow_safe.c:203
-misra-c2012-5.9:fw/safe/flow_safe.c:250
-misra-c2012-5.9:fw/safe/flow_safe.c:290
-misra-c2012-5.9:fw/safe/flow_safe.c:347
-misra-c2012-5.9:fw/safe/flow_safe.c:372
-misra-c2012-5.9:fw/safe/flow_safe.c:480
-misra-c2012-5.9:fw/safe/fsoe_app.c:54
+misra-c2012-5.9:fw/safe/flow_safe.c:114
+misra-c2012-5.9:fw/safe/flow_safe.c:131
+misra-c2012-5.9:fw/safe/flow_safe.c:143
+misra-c2012-5.9:fw/safe/flow_safe.c:161
+misra-c2012-5.9:fw/safe/flow_safe.c:187
+misra-c2012-5.9:fw/safe/flow_safe.c:214
+misra-c2012-5.9:fw/safe/flow_safe.c:261
+misra-c2012-5.9:fw/safe/flow_safe.c:301
+misra-c2012-5.9:fw/safe/flow_safe.c:358
+misra-c2012-5.9:fw/safe/flow_safe.c:383
+misra-c2012-5.9:fw/safe/flow_safe.c:491
+misra-c2012-5.9:fw/safe/fsoe_app.c:56
 
 # --------------------------------------------------------------------------
 # 8.6 (Required) - An identifier with external linkage shall have exactly one
@@ -112,11 +112,11 @@ misra-c2012-8.6:fw/fieldbus/fsoe_app.c:43
 misra-c2012-8.6:fw/fieldbus/fsoe_app.c:50
 misra-c2012-8.6:fw/fieldbus/fsoe_app.c:57
 misra-c2012-8.6:fw/fieldbus/fsoe_app.c:67
-misra-c2012-8.6:fw/safe/fsoe_app.c:67
-misra-c2012-8.6:fw/safe/fsoe_app.c:74
-misra-c2012-8.6:fw/safe/fsoe_app.c:81
-misra-c2012-8.6:fw/safe/fsoe_app.c:88
-misra-c2012-8.6:fw/safe/fsoe_app.c:98
+misra-c2012-8.6:fw/safe/fsoe_app.c:69
+misra-c2012-8.6:fw/safe/fsoe_app.c:76
+misra-c2012-8.6:fw/safe/fsoe_app.c:83
+misra-c2012-8.6:fw/safe/fsoe_app.c:90
+misra-c2012-8.6:fw/safe/fsoe_app.c:100
 
 # --------------------------------------------------------------------------
 # 8.7 (Advisory) - Functions and objects should not be defined with external
@@ -126,14 +126,14 @@ misra-c2012-8.6:fw/safe/fsoe_app.c:98
 # fieldbus_main.c (un TU). Restano con linkage esterno perche' sono il confine
 # del modulo (header dedicato, testabilita'); la regola e' advisory.
 # --------------------------------------------------------------------------
-misra-c2012-8.7:fw/fieldbus/flow_a55.c:24
-misra-c2012-8.7:fw/fieldbus/flow_a55.c:48
-misra-c2012-8.7:fw/fieldbus/flow_a55.c:120
-misra-c2012-8.7:fw/fieldbus/flow_field.c:33
-misra-c2012-8.7:fw/fieldbus/flow_field.c:131
-misra-c2012-8.7:fw/fieldbus/flow_field.c:144
-misra-c2012-8.7:fw/fieldbus/flow_field.c:178
-misra-c2012-8.7:fw/fieldbus/flow_field.c:191
+misra-c2012-8.7:fw/fieldbus/flow_a55.c:28
+misra-c2012-8.7:fw/fieldbus/flow_a55.c:52
+misra-c2012-8.7:fw/fieldbus/flow_a55.c:124
+misra-c2012-8.7:fw/fieldbus/flow_field.c:43
+misra-c2012-8.7:fw/fieldbus/flow_field.c:141
+misra-c2012-8.7:fw/fieldbus/flow_field.c:154
+misra-c2012-8.7:fw/fieldbus/flow_field.c:188
+misra-c2012-8.7:fw/fieldbus/flow_field.c:201
 
 # --------------------------------------------------------------------------
 # 8.9 (Advisory) - An object should be defined at block scope if its identifier
@@ -143,7 +143,7 @@ misra-c2012-8.7:fw/fieldbus/flow_field.c:191
 # introdurrebbe un inizializzatore aggregato parziale (9.2/9.3) o un falso
 # positivo di cppcheck (unassignedVariable). Resta a file scope.
 # --------------------------------------------------------------------------
-misra-c2012-8.9:fw/common/flow/flow_icc.c:21
+misra-c2012-8.9:fw/common/flow/flow_icc.c:31
 
 # --------------------------------------------------------------------------
 # 10.4 (Required) - Both operands of an operator in which the usual arithmetic
@@ -154,7 +154,7 @@ misra-c2012-8.9:fw/common/flow/flow_icc.c:21
 # (PDU FSoE = FLOW_PDU_MAX) e' verificato a compile time: se cambia, il build
 # fallisce.
 # --------------------------------------------------------------------------
-misra-c2012-10.4:fw/safe/flow_safe.c:29
+misra-c2012-10.4:fw/safe/flow_safe.c:40
 
 # --------------------------------------------------------------------------
 # 11.4 (Advisory) - A conversion should not be performed between a pointer to
@@ -164,9 +164,9 @@ misra-c2012-10.4:fw/safe/flow_safe.c:29
 # aree di prova del selftest: in C non c'e' alternativa per accedere a un
 # indirizzo fisico.
 # --------------------------------------------------------------------------
-misra-c2012-11.4:fw/common/flow/flow_icc.c:19
-misra-c2012-11.4:fw/common/flow/flow_selftest.c:115
-misra-c2012-11.4:fw/common/flow/flow_selftest.c:116
+misra-c2012-11.4:fw/common/flow/flow_icc.c:29
+misra-c2012-11.4:fw/common/flow/flow_selftest.c:123
+misra-c2012-11.4:fw/common/flow/flow_selftest.c:124
 
 # --------------------------------------------------------------------------
 # 11.5 (Advisory) - A conversion should not be performed from pointer to void
@@ -179,16 +179,16 @@ misra-c2012-11.4:fw/common/flow/flow_selftest.c:116
 #    dalle callback di rt-labs e va convertito nel tipo concreto del ruolo,
 #    dopo la verifica del magic.
 # --------------------------------------------------------------------------
-misra-c2012-11.5:fw/common/flow/flow_app_parameters.c:18
-misra-c2012-11.5:fw/common/flow/flow_crc.c:11
-misra-c2012-11.5:fw/common/flow/flow_crc.c:33
-misra-c2012-11.5:fw/common/flow/flow_mem.c:15
-misra-c2012-11.5:fw/common/flow/flow_mem.c:16
-misra-c2012-11.5:fw/common/flow/flow_mem.c:26
-misra-c2012-11.5:fw/common/flow/flow_mem.c:36
-misra-c2012-11.5:fw/common/flow/flow_mem.c:37
+misra-c2012-11.5:fw/common/flow/flow_app_parameters.c:23
+misra-c2012-11.5:fw/common/flow/flow_crc.c:15
+misra-c2012-11.5:fw/common/flow/flow_crc.c:37
+misra-c2012-11.5:fw/common/flow/flow_mem.c:19
+misra-c2012-11.5:fw/common/flow/flow_mem.c:20
+misra-c2012-11.5:fw/common/flow/flow_mem.c:30
+misra-c2012-11.5:fw/common/flow/flow_mem.c:40
+misra-c2012-11.5:fw/common/flow/flow_mem.c:41
 misra-c2012-11.5:fw/fieldbus/fsoe_app.c:25
-misra-c2012-11.5:fw/safe/fsoe_app.c:56
+misra-c2012-11.5:fw/safe/fsoe_app.c:58
 
 # --------------------------------------------------------------------------
 # 12.1 (Advisory) - The precedence of operators within expressions should be
@@ -198,7 +198,7 @@ misra-c2012-11.5:fw/safe/fsoe_app.c:56
 # (macro vendored, non modificabile). Le nostre macro sono state parentesizzate
 # (FLOW_FSOE_PDU_SIZE, FLOW_SHM_*): vedi flow_config.h e flow_shm_api.h.
 # --------------------------------------------------------------------------
-misra-c2012-12.1:fw/safe/flow_safe.c:29
+misra-c2012-12.1:fw/safe/flow_safe.c:40
 
 # --------------------------------------------------------------------------
 # 15.5 (Advisory) - A function should have a single point of exit at the end
@@ -209,96 +209,96 @@ misra-c2012-12.1:fw/safe/flow_safe.c:29
 # mutabile e i percorsi non coperti. Da rivalutare solo con un requisito di
 # certificazione esplicito.
 # --------------------------------------------------------------------------
-misra-c2012-15.5:fw/common/flow/flow_app_parameters.c:25
-misra-c2012-15.5:fw/common/flow/flow_app_parameters.c:32
-misra-c2012-15.5:fw/common/flow/flow_icc.c:36
-misra-c2012-15.5:fw/common/flow/flow_icc.c:56
-misra-c2012-15.5:fw/common/flow/flow_icc.c:82
-misra-c2012-15.5:fw/common/flow/flow_icc.c:106
-misra-c2012-15.5:fw/common/flow/flow_icc.c:130
-misra-c2012-15.5:fw/common/flow/flow_icc.c:167
-misra-c2012-15.5:fw/common/flow/flow_icc.c:174
-misra-c2012-15.5:fw/common/flow/flow_icc.c:193
-misra-c2012-15.5:fw/common/flow/flow_icc.c:198
-misra-c2012-15.5:fw/common/flow/flow_icc.c:224
-misra-c2012-15.5:fw/common/flow/flow_mem.c:42
-misra-c2012-15.5:fw/common/flow/flow_mu.c:42
-misra-c2012-15.5:fw/common/flow/flow_mu.c:56
-misra-c2012-15.5:fw/common/flow/flow_mu.c:60
-misra-c2012-15.5:fw/common/flow/flow_mu.c:63
+misra-c2012-15.5:fw/common/flow/flow_app_parameters.c:30
+misra-c2012-15.5:fw/common/flow/flow_app_parameters.c:37
+misra-c2012-15.5:fw/common/flow/flow_icc.c:46
+misra-c2012-15.5:fw/common/flow/flow_icc.c:66
+misra-c2012-15.5:fw/common/flow/flow_icc.c:92
+misra-c2012-15.5:fw/common/flow/flow_icc.c:116
+misra-c2012-15.5:fw/common/flow/flow_icc.c:140
+misra-c2012-15.5:fw/common/flow/flow_icc.c:177
+misra-c2012-15.5:fw/common/flow/flow_icc.c:184
+misra-c2012-15.5:fw/common/flow/flow_icc.c:203
+misra-c2012-15.5:fw/common/flow/flow_icc.c:208
+misra-c2012-15.5:fw/common/flow/flow_icc.c:234
+misra-c2012-15.5:fw/common/flow/flow_mem.c:46
+misra-c2012-15.5:fw/common/flow/flow_mu.c:52
 misra-c2012-15.5:fw/common/flow/flow_mu.c:66
-misra-c2012-15.5:fw/common/flow/flow_mu.c:72
-misra-c2012-15.5:fw/common/flow/flow_mu.c:75
-misra-c2012-15.5:fw/common/flow/flow_mu.c:98
-misra-c2012-15.5:fw/common/flow/flow_mu.c:127
-misra-c2012-15.5:fw/common/flow/flow_mu.c:138
-misra-c2012-15.5:fw/common/flow/flow_mu.c:142
-misra-c2012-15.5:fw/common/flow/flow_mu.c:150
-misra-c2012-15.5:fw/common/flow/flow_shm.c:56
-misra-c2012-15.5:fw/common/flow/flow_shm.c:91
-misra-c2012-15.5:fw/common/flow/flow_shm.c:95
-misra-c2012-15.5:fw/common/flow/flow_shm.c:98
-misra-c2012-15.5:fw/common/flow/flow_shm.c:101
-misra-c2012-15.5:fw/common/flow/flow_shm.c:104
-misra-c2012-15.5:fw/common/flow/flow_shm.c:107
-misra-c2012-15.5:fw/common/flow/flow_shm.c:110
-misra-c2012-15.5:fw/common/flow/flow_shm.c:113
-misra-c2012-15.5:fw/common/flow/flow_shm.c:116
-misra-c2012-15.5:fw/common/flow/flow_shm.c:119
-misra-c2012-15.5:fw/common/flow/flow_shm.c:131
-misra-c2012-15.5:fw/common/flow/flow_shm.c:141
-misra-c2012-15.5:fw/common/flow/flow_shm.c:162
-misra-c2012-15.5:fw/common/flow/flow_shm.c:188
-misra-c2012-15.5:fw/common/flow/flow_shm.c:194
-misra-c2012-15.5:fw/common/flow/flow_shm.c:215
-misra-c2012-15.5:fw/common/flow/flow_shm.c:240
-misra-c2012-15.5:fw/common/flow/flow_shm.c:243
-misra-c2012-15.5:fw/common/flow/flow_shm.c:246
-misra-c2012-15.5:fw/common/flow/flow_shm.c:249
-misra-c2012-15.5:fw/common/flow/flow_shm.c:265
-misra-c2012-15.5:fw/common/flow/flow_shm.c:271
-misra-c2012-15.5:fw/common/flow/flow_shm.c:295
-misra-c2012-15.5:fw/common/flow/flow_shm.c:309
-misra-c2012-15.5:fw/common/flow/flow_shm.c:315
-misra-c2012-15.5:fw/common/flow/flow_shm.c:333
-misra-c2012-15.5:fw/common/flow/flow_shm.c:339
-misra-c2012-15.5:fw/common/flow/flow_shm.c:355
-misra-c2012-15.5:fw/common/flow/flow_shm.c:360
-misra-c2012-15.5:fw/common/flow/flow_shm_api.h:157
-misra-c2012-15.5:fw/common/flow/flow_shm_api.h:161
-misra-c2012-15.5:fw/common/flow/flow_shm_api.h:165
-misra-c2012-15.5:fw/common/flow/flow_types.h:55
-misra-c2012-15.5:fw/common/flow/flow_types.h:57
-misra-c2012-15.5:fw/common/flow/flow_types.h:59
-misra-c2012-15.5:fw/common/flow/flow_types.h:61
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:29
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:35
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:64
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:74
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:83
+misra-c2012-15.5:fw/common/flow/flow_mu.c:70
+misra-c2012-15.5:fw/common/flow/flow_mu.c:73
+misra-c2012-15.5:fw/common/flow/flow_mu.c:76
+misra-c2012-15.5:fw/common/flow/flow_mu.c:82
+misra-c2012-15.5:fw/common/flow/flow_mu.c:85
+misra-c2012-15.5:fw/common/flow/flow_mu.c:108
+misra-c2012-15.5:fw/common/flow/flow_mu.c:137
+misra-c2012-15.5:fw/common/flow/flow_mu.c:148
+misra-c2012-15.5:fw/common/flow/flow_mu.c:152
+misra-c2012-15.5:fw/common/flow/flow_mu.c:160
+misra-c2012-15.5:fw/common/flow/flow_shm.c:67
+misra-c2012-15.5:fw/common/flow/flow_shm.c:102
+misra-c2012-15.5:fw/common/flow/flow_shm.c:106
+misra-c2012-15.5:fw/common/flow/flow_shm.c:109
+misra-c2012-15.5:fw/common/flow/flow_shm.c:112
+misra-c2012-15.5:fw/common/flow/flow_shm.c:115
+misra-c2012-15.5:fw/common/flow/flow_shm.c:118
+misra-c2012-15.5:fw/common/flow/flow_shm.c:121
+misra-c2012-15.5:fw/common/flow/flow_shm.c:124
+misra-c2012-15.5:fw/common/flow/flow_shm.c:127
+misra-c2012-15.5:fw/common/flow/flow_shm.c:130
+misra-c2012-15.5:fw/common/flow/flow_shm.c:142
+misra-c2012-15.5:fw/common/flow/flow_shm.c:152
+misra-c2012-15.5:fw/common/flow/flow_shm.c:173
+misra-c2012-15.5:fw/common/flow/flow_shm.c:199
+misra-c2012-15.5:fw/common/flow/flow_shm.c:205
+misra-c2012-15.5:fw/common/flow/flow_shm.c:226
+misra-c2012-15.5:fw/common/flow/flow_shm.c:251
+misra-c2012-15.5:fw/common/flow/flow_shm.c:254
+misra-c2012-15.5:fw/common/flow/flow_shm.c:257
+misra-c2012-15.5:fw/common/flow/flow_shm.c:260
+misra-c2012-15.5:fw/common/flow/flow_shm.c:276
+misra-c2012-15.5:fw/common/flow/flow_shm.c:282
+misra-c2012-15.5:fw/common/flow/flow_shm.c:306
+misra-c2012-15.5:fw/common/flow/flow_shm.c:320
+misra-c2012-15.5:fw/common/flow/flow_shm.c:326
+misra-c2012-15.5:fw/common/flow/flow_shm.c:344
+misra-c2012-15.5:fw/common/flow/flow_shm.c:350
+misra-c2012-15.5:fw/common/flow/flow_shm.c:366
+misra-c2012-15.5:fw/common/flow/flow_shm.c:371
+misra-c2012-15.5:fw/common/flow/flow_shm_api.h:170
+misra-c2012-15.5:fw/common/flow/flow_shm_api.h:174
+misra-c2012-15.5:fw/common/flow/flow_shm_api.h:178
+misra-c2012-15.5:fw/common/flow/flow_types.h:56
+misra-c2012-15.5:fw/common/flow/flow_types.h:58
+misra-c2012-15.5:fw/common/flow/flow_types.h:60
+misra-c2012-15.5:fw/common/flow/flow_types.h:62
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:33
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:39
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:68
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:78
 misra-c2012-15.5:fw/fieldbus/flow_a55.c:87
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:95
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:105
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:131
-misra-c2012-15.5:fw/fieldbus/flow_a55.c:137
-misra-c2012-15.5:fw/fieldbus/flow_field.c:136
-misra-c2012-15.5:fw/fieldbus/flow_field.c:181
-misra-c2012-15.5:fw/fieldbus/flow_field.c:204
-misra-c2012-15.5:fw/fieldbus/flow_field.c:220
-misra-c2012-15.5:fw/fieldbus/flow_field.c:229
-misra-c2012-15.5:fw/safe/flow_safe.c:155
-misra-c2012-15.5:fw/safe/flow_safe.c:207
-misra-c2012-15.5:fw/safe/flow_safe.c:214
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:91
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:99
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:109
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:135
+misra-c2012-15.5:fw/fieldbus/flow_a55.c:141
+misra-c2012-15.5:fw/fieldbus/flow_field.c:146
+misra-c2012-15.5:fw/fieldbus/flow_field.c:191
+misra-c2012-15.5:fw/fieldbus/flow_field.c:214
+misra-c2012-15.5:fw/fieldbus/flow_field.c:230
+misra-c2012-15.5:fw/fieldbus/flow_field.c:239
+misra-c2012-15.5:fw/safe/flow_safe.c:166
 misra-c2012-15.5:fw/safe/flow_safe.c:218
-misra-c2012-15.5:fw/safe/flow_safe.c:616
-misra-c2012-15.5:fw/safe/flow_safe.c:657
-misra-c2012-15.5:fw/safe/flow_safe.c:689
-misra-c2012-15.5:fw/safe/flow_safe.c:702
-misra-c2012-15.5:fw/safe/flow_safe.c:716
-misra-c2012-15.5:fw/safe/flow_safe.c:724
-misra-c2012-15.5:fw/safe/flow_safe.c:738
-misra-c2012-15.5:fw/safe/flow_safe.c:742
+misra-c2012-15.5:fw/safe/flow_safe.c:225
+misra-c2012-15.5:fw/safe/flow_safe.c:229
+misra-c2012-15.5:fw/safe/flow_safe.c:627
+misra-c2012-15.5:fw/safe/flow_safe.c:668
+misra-c2012-15.5:fw/safe/flow_safe.c:700
+misra-c2012-15.5:fw/safe/flow_safe.c:713
+misra-c2012-15.5:fw/safe/flow_safe.c:727
+misra-c2012-15.5:fw/safe/flow_safe.c:735
 misra-c2012-15.5:fw/safe/flow_safe.c:749
+misra-c2012-15.5:fw/safe/flow_safe.c:753
+misra-c2012-15.5:fw/safe/flow_safe.c:760
 
 # --------------------------------------------------------------------------
 # 17.3 (Mandatory) - A function shall not be declared implicitly
@@ -309,35 +309,35 @@ misra-c2012-15.5:fw/safe/flow_safe.c:749
 # -Wall -Wextra) e' pulito: nessuna dichiarazione implicita. Vedi
 # docs/qualita.md, "Cosa non e' coperto".
 # --------------------------------------------------------------------------
-misra-c2012-17.3:fw/common/flow/flow_icc.c:41
-misra-c2012-17.3:fw/common/flow/flow_icc.c:42
-misra-c2012-17.3:fw/common/flow/flow_icc.c:47
-misra-c2012-17.3:fw/common/flow/flow_icc.c:98
-misra-c2012-17.3:fw/common/flow/flow_icc.c:99
-misra-c2012-17.3:fw/common/flow/flow_icc.c:144
-misra-c2012-17.3:fw/common/flow/flow_icc.c:186
-misra-c2012-17.3:fw/common/flow/flow_icc.c:206
-misra-c2012-17.3:fw/common/flow/flow_icc.c:221
-misra-c2012-17.3:fw/common/flow/flow_icc.c:222
-misra-c2012-17.3:fw/common/flow/flow_icc.c:233
-misra-c2012-17.3:fw/common/flow/flow_icc.c:234
-misra-c2012-17.3:fw/common/flow/flow_icc.c:246
-misra-c2012-17.3:fw/common/flow/flow_icc.c:252
-misra-c2012-17.3:fw/common/flow/flow_shm.c:84
-misra-c2012-17.3:fw/common/flow/flow_shm.c:85
-misra-c2012-17.3:fw/common/flow/flow_shm.c:94
-misra-c2012-17.3:fw/common/flow/flow_shm.c:144
-misra-c2012-17.3:fw/common/flow/flow_shm.c:175
-misra-c2012-17.3:fw/common/flow/flow_shm.c:178
-misra-c2012-17.3:fw/common/flow/flow_shm.c:179
-misra-c2012-17.3:fw/common/flow/flow_shm.c:183
-misra-c2012-17.3:fw/common/flow/flow_shm.c:184
-misra-c2012-17.3:fw/common/flow/flow_shm.c:203
-misra-c2012-17.3:fw/common/flow/flow_shm.c:224
-misra-c2012-17.3:fw/common/flow/flow_shm.c:232
-misra-c2012-17.3:fw/common/flow/flow_shm.c:233
-misra-c2012-17.3:fw/common/flow/flow_shm.c:288
-misra-c2012-17.3:fw/common/flow/flow_shm.c:298
+misra-c2012-17.3:fw/common/flow/flow_icc.c:51
+misra-c2012-17.3:fw/common/flow/flow_icc.c:52
+misra-c2012-17.3:fw/common/flow/flow_icc.c:57
+misra-c2012-17.3:fw/common/flow/flow_icc.c:108
+misra-c2012-17.3:fw/common/flow/flow_icc.c:109
+misra-c2012-17.3:fw/common/flow/flow_icc.c:154
+misra-c2012-17.3:fw/common/flow/flow_icc.c:196
+misra-c2012-17.3:fw/common/flow/flow_icc.c:216
+misra-c2012-17.3:fw/common/flow/flow_icc.c:231
+misra-c2012-17.3:fw/common/flow/flow_icc.c:232
+misra-c2012-17.3:fw/common/flow/flow_icc.c:243
+misra-c2012-17.3:fw/common/flow/flow_icc.c:244
+misra-c2012-17.3:fw/common/flow/flow_icc.c:256
+misra-c2012-17.3:fw/common/flow/flow_icc.c:262
+misra-c2012-17.3:fw/common/flow/flow_shm.c:95
+misra-c2012-17.3:fw/common/flow/flow_shm.c:96
+misra-c2012-17.3:fw/common/flow/flow_shm.c:105
+misra-c2012-17.3:fw/common/flow/flow_shm.c:155
+misra-c2012-17.3:fw/common/flow/flow_shm.c:186
+misra-c2012-17.3:fw/common/flow/flow_shm.c:189
+misra-c2012-17.3:fw/common/flow/flow_shm.c:190
+misra-c2012-17.3:fw/common/flow/flow_shm.c:194
+misra-c2012-17.3:fw/common/flow/flow_shm.c:195
+misra-c2012-17.3:fw/common/flow/flow_shm.c:214
+misra-c2012-17.3:fw/common/flow/flow_shm.c:235
+misra-c2012-17.3:fw/common/flow/flow_shm.c:243
+misra-c2012-17.3:fw/common/flow/flow_shm.c:244
+misra-c2012-17.3:fw/common/flow/flow_shm.c:299
+misra-c2012-17.3:fw/common/flow/flow_shm.c:309
 
 # --------------------------------------------------------------------------
 # 19.2 (Advisory) - The union keyword should not be used

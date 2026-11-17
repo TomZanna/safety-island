@@ -1,4 +1,7 @@
 # Toolchain arm-none-eabi (bare metal). ARMGCC_DIR arriva dal superbuild (deps/CMakeLists.txt).
+# La try-compile usa STATIC_LIBRARY perche' il cross-compiler non puo' linkare un eseguibile senza
+# linker script (che a questo punto non esiste ancora). objcopy/size restano in CACHE perche' il
+# POST_BUILD di imx94.cmake li usa come FILEPATH.
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 if(NOT ARMGCC_DIR)

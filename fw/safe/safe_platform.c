@@ -3,6 +3,10 @@
  * @brief Aggancio alla piattaforma del ruolo safe.
  * @ingroup flow_safe
  *
+ * La mappa non e' una preferenza: la MU18 ha il lato A cablato su M7_1 e il
+ * lato B su M7_0. SAFE_A (m70) binda il lato B, SAFE_B (m71) il lato A; un
+ * ruolo diverso e' una condizione fatale, perche' vorrebbe dire che l'app ha
+ * passato l'identita' sbagliata.
  */
 #include "safe_platform.h"
 

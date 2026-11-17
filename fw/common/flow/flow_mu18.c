@@ -4,6 +4,16 @@
  * mx94evk).
  * @ingroup flow_mu18
  *
+ * Il driver parla direttamente con i registri: niente MU_Init() ne'
+ * CLOCK_EnableClock(), perche' il clock della MU e' dell'SM e un eventuale
+ * problema di clock si chiede via SCMI. Un ruolo che non chiama
+ * flow_mu18_bind() lascia `s_mu` a NULL e ogni funzione fallisce chiusa: il
+ * FIELDBUS, che non ha un lato MU18, non puo' usarla per sbaglio.
+ *
+ * Il mittente aspetta che TR0/TR1 siano liberi (TSR), scrive le due parole e
+ * lascia trasferire la MU; il ricevente legge RR0/RR1 quando RSR le segnala
+ * piene, e la lettura azzera i flag. flow_mu18_poll() serve i cicli e non
+ * tocca i contatori dei timeout; flow_mu18_recv() aggiunge l'attesa e li conta.
  */
 #include "flow_mu18.h"
 

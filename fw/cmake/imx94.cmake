@@ -6,6 +6,14 @@
 # ROLE aggiunge il virtual safe PLC e linka il codice del ruolo: safe_a/safe_b -> fw/safe/ (dove il
 # main.c dell'app chiama safe_main(FLOW_CORE_SAFE_A/B)), fieldbus -> fw/fieldbus/ (fieldbus_main()).
 # Gli altri file del sottosistema stanno in fw/common/flow/.
+#
+# Mappa di memoria per core (indirizzi dei TCM visti dal core, come i *_ram.ld del SDK): vettori,
+# codice, dati e regione non-cacheable. Cambiare un LD_* cambia il linker script generato
+# (configure_file) e quindi forza il link.
+#
+# Lo stack FSoE e' un archivio statico per app: ogni TU e' compilata a parte e il link scarta cio'
+# che il ruolo non usa, cosi' il master non porta dentro lo slave e viceversa. FSoEappl/ non si
+# compila: e' l'esempio NXP; il port e' flow/port.
 include_guard(GLOBAL)
 set(FW_COMMON "${CMAKE_CURRENT_LIST_DIR}/../common")
 

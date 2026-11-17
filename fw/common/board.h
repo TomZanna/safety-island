@@ -4,14 +4,13 @@
  * M7_1) con il System Manager.
  * @ingroup board
  *
- * - Canale SCMI con l'SM (SystemPlatformInit() del SDK): serve per qualsiasi
- * pin mux/clock/power, che con l'SM sono protetti dal TRDC e si chiedono
- * all'SM.
- * - Log e input via SEGGER RTT, un canale per core in un control block
- * condiviso (fw/common/rtt_shared.h): una sola sessione RTT vede tutti i core.
- * VS Code: un terminale per core durante il debug; da terminale: make rtt.
- * - SysTick a 1 kHz, attesa opzionale del debugger (WAIT_DEBUGGER) prima di
- * main().
+ * Il canale SCMI con l'SM (SystemPlatformInit() del SDK) e' la via per ogni
+ * pin mux, clock o power: con l'SM quelle risorse sono protette dal TRDC e si
+ * chiedono, non si configurano. Log e input passano da SEGGER RTT con un canale
+ * per core in un control block condiviso (fw/common/rtt_shared.h), cosi' una
+ * sola sessione RTT vede tutti i core: un terminale per core in VS Code oppure
+ * `make rtt` da terminale. Il tick e' SysTick a 1 kHz; WAIT_DEBUGGER aggiunge
+ * un'attesa opzionale del debugger prima di main().
  */
 #ifndef SI_BOARD_H
 #define SI_BOARD_H

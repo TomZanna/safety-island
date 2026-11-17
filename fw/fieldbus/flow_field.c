@@ -4,6 +4,16 @@
  * ingressi.
  * @ingroup flow_field
  *
+ * Il campo simulato e' deterministico (xorshift con seed costante): la stessa
+ * sequenza si riproduce a ogni boot, utile per confrontare due run. Lo stato
+ * cambia ogni ~500 ms con un bias verso "macchina in marcia"; quando le
+ * condizioni di sicurezza sono soddisfatte parte un impulso di reset di ~120
+ * ms, cosi' il 1oo2 arriva ad abilitare le uscite.
+ *
+ * Il ruolo gira a 2 ms per tenere vivo il watchdog FSoE del master (100 ms) e
+ * pubblica la risposta dello slave una volta per ciclo safe. drop_frames e
+ * inject_discrepancy sono gli strumenti di prova comandati da RTT: scartano
+ * frame o fanno divergere il canale B di proposito.
  */
 #include "flow_field.h"
 

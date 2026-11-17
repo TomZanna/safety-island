@@ -4,6 +4,16 @@
  * secondari, un canale per core.
  * @ingroup rtt
  *
+ * L'area e' un layout fisso: control block, nomi e buffer di tutti i canali in
+ * OCRAM, con offset uguali per ogni core. I puntatori dentro il control block
+ * devono valere per chiunque legga, quindi niente stringhe o buffer nella TCM
+ * del singolo core. rtt_init() scrive solo i descrittori del proprio canale e
+ * l'header comune (l'ID SEGGER per ultimo, come fa la libreria): un core che
+ * riparte non cancella i canali degli altri.
+ *
+ * La scrittura e' no-block-skip: se il buffer da 4 KB e' pieno il messaggio si
+ * perde intero, mai spezzato. Le barriere DMB servono a pubblicare i dati prima
+ * dell'indice di scrittura, che il J-Link legge dall'host.
  */
 #include "rtt_shared.h"
 

@@ -3,19 +3,24 @@
  * @brief Piattaforma i.MX94 per il sottosistema flow (M7_0, M7_1, M33_1).
  * @ingroup flow_platform
  *
- * Scelte:
- *   - tick di ciclo: SysTick a 1 kHz (board_millis, fw/common/board.c) con il
- *     periodo del ruolo passato a flow_platform_init() (10 ms safe, 2 ms
- *     fieldbus). Un ritardo oltre due periodi riallinea il contatore invece di
- *     accumulare (s_slips lo conta).
- *   - tempo in us: DWT->CYCCNT. E' una sorgente indipendente dal tick (nessuna
- *     causa comune con il watchdog FSoE) e non richiede periferiche dell'SM.
- *   - RNG: solo di banco (DWT + SysTick + ruolo), vedi FLOW_BENCH_RNG. Con
- *     l'opzione a 0 la funzione e' fatale: nel build safety non c'e' ripiego.
- *   - log: una riga per chiamata su rtt_write, cosi' il no-block-skip del
- * canale RTT o la scrive intera o la scarta (mai righe spezzate).
- *   - trasporto dei cross-check: TODO, arriva con flow_icc.c (M2). Per ora un
- *     post/wait che fallisce chiuso.
+ * Il tick di ciclo e' SysTick a 1 kHz (`board_millis()`), con il periodo del
+ * ruolo passato a flow_platform_init() (10 ms safe, 2 ms fieldbus): se il core
+ * resta indietro di piu' di due periodi il contatore si riallinea invece di
+ * accumulare, e lo scatto perso finisce in `s_slips`. Il tempo in microsecondi
+ * viene da DWT->CYCCNT, una sorgente indipendente dal tick: watchdog FSoE e
+ * timeout non hanno una causa comune con il ciclo e non servono periferiche
+ * dell'SM.
+ *
+ * L'RNG e' solo di banco (DWT + SysTick + ruolo): serve a dare ai due master
+ * numeri diversi per il Session ID, e con FLOW_BENCH_RNG=0 la funzione e'
+ * fatale perche' nel build safety non esiste un ripiego pseudo-casuale. Il log
+ * scrive una riga per chiamata su `rtt_write()`: il no-block-skip del canale
+ * RTT o la scrive intera o la scarta, mai spezzata.
+ *
+ * Il trasporto dei messaggi di cross-check e' in fondo a questo file:
+ * flow_platform_mu_post() e flow_platform_mu_wait() delegano a flow_icc
+ * (payload in OCRAM + doorbell MU18) e falliscono chiusi se il canale non e'
+ * pronto.
  */
 #include "flow_platform.h"
 

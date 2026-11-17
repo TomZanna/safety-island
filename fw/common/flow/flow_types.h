@@ -17,15 +17,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef uint8_t flow_u8;
-typedef uint16_t flow_u16;
-typedef uint32_t flow_u32;
-typedef int32_t flow_s32;
+typedef uint8_t flow_u8; /**< byte: unita' del protocollo */
+typedef uint16_t flow_u16; /**< parola a 16 bit del protocollo */
+typedef uint32_t flow_u32; /**< parola a 32 bit del protocollo */
+typedef int32_t flow_s32; /**< differenza fra contatori (wrap-aware) */
 
-#define FLOW_PACKED __attribute__((packed))
-#define FLOW_NORETURN __attribute__((noreturn))
-#define FLOW_INLINE static inline
+#define FLOW_PACKED __attribute__((packed)) /**< niente padding: e' ABI */
+#define FLOW_NORETURN __attribute__((noreturn)) /**< fail-safe: non ritorna */
+#define FLOW_INLINE static inline /**< inline di header, privata della TU */
 
+/** Contratto verificato a compile time: gli assert sono l'ABI. */
 #define FLOW_STATIC_ASSERT(condition, message) \
   _Static_assert(condition, message)
 

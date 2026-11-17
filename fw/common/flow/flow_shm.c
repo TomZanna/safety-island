@@ -3,6 +3,17 @@
  * @brief Accessori alla mailbox descritta in flow_shm_api.h.
  * @ingroup flow_shm
  *
+ * Il seqlock e' quello classico: lo scrittore porta `bank_seq[bank]` a dispari,
+ * scrive lo slot e lo riporta a pari; il lettore copia solo con sequence pari e
+ * verifica che non sia cambiata. Il budget di SHM_SPIN_ATTEMPTS evita un'attesa
+ * infinita se lo scrittore si ferma (per esempio con il debugger attaccato):
+ * meglio un fallimento visibile che un core bloccato.
+ *
+ * Tre banchi servono perche' il lettore sceglie il banco da un contatore che
+ * puo' essere indietro di una o due pubblicazioni: con tre, il banco letto non
+ * e' mai quello che uno scrittore sta usando. Dopo lo stage la funzione rilegge
+ * lo slot (read-back): un errore li' non e' un problema di protocollo ma di
+ * memoria o di permessi TRDC, e va visto subito.
  */
 #include "flow_shm.h"
 

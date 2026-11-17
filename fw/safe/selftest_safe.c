@@ -4,6 +4,11 @@
  * CRC).
  * @ingroup flow_safe
  *
+ * Il probe e' piccolo e autodescrittivo (ruolo, cicli, magic): viene pubblicato
+ * sullo slot ICC e atteso dal peer. I 50 tentativi con 20 ms di timeout
+ * assorbono il disallineamento di boot fra i due core (uno puo' arrivare al
+ * selftest mentre l'altro sta ancora inizializzando la mailbox), senza
+ * bloccare per sempre: se il peer non risponde il sistema non parte.
  */
 #include "selftest_safe.h"
 

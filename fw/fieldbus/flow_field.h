@@ -27,20 +27,20 @@ typedef struct flow_field flow_field_t;
  * questo binario non esiste il master), quindi nessun dispatch a runtime. */
 typedef struct field_fsoe_ref
 {
-  flow_u32 magic;
-  flow_u32 k;
-  flow_field_t* field;
+  flow_u32 magic; /**< FLOW_FSOE_REF_MAGIC: guardia sull'app_ref */
+  flow_u32 k; /**< indice della connessione */
+  flow_field_t* field; /**< stato del ruolo (mai NULL) */
 } field_fsoe_ref_t;
 
 /** @brief Stato del ruolo fieldbus (slave, campo simulato, contatori). */
 struct flow_field
 {
-  field_fsoe_ref_t ref[FLOW_NUM_CONNECTIONS];
-  fsoeslave_t slave[FLOW_NUM_CONNECTIONS];
-  fsoeslave_syncstatus_t sync[FLOW_NUM_CONNECTIONS];
+  field_fsoe_ref_t ref[FLOW_NUM_CONNECTIONS]; /**< app_ref dello stack */
+  fsoeslave_t slave[FLOW_NUM_CONNECTIONS]; /**< istanze dello slave */
+  fsoeslave_syncstatus_t sync[FLOW_NUM_CONNECTIONS]; /**< stato FSoE */
 
-  flow_safe_inputs_t field_inputs[FLOW_NUM_CONNECTIONS];
-  flow_safe_outputs_t field_outputs[FLOW_NUM_CONNECTIONS];
+  flow_safe_inputs_t field_inputs[FLOW_NUM_CONNECTIONS]; /**< generati */
+  flow_safe_outputs_t field_outputs[FLOW_NUM_CONNECTIONS]; /**< ricevuti */
 
   /** Frame ricevuto dal master (assemblato dal ruolo fieldbus). */
   flow_u8 rx_pdu[FLOW_PDU_MAX];
@@ -52,23 +52,23 @@ struct flow_field
   flow_u32 tx_len;
   bool tx_ready;
 
-  flow_u32 bus_cycles;
-  flow_u32 rng;
+  flow_u32 bus_cycles; /**< cicli da 2 ms dall'avvio (base del processo) */
+  flow_u32 rng; /**< seed dello xorshift deterministico */
 
   /** Stato del processo di campo simulato. */
-  bool estop_ok;
-  bool door_closed;
-  bool reset;
-  bool reset_given;
-  flow_u32 reset_window;
-  bool inject_discrepancy;
+  bool estop_ok; /**< E-stop rilasciato */
+  bool door_closed; /**< porta chiusa */
+  bool reset; /**< impulso di reset in corso */
+  bool reset_given; /**< reset gia' dato in questa finestra di sicurezza */
+  flow_u32 reset_window; /**< cicli residui dell'impulso (~120 ms) */
+  bool inject_discrepancy; /**< canale B forzato diverso (comando RTT) */
 
   flow_u32 drop_frames; /**< frame da scartare (test del watchdog FSoE) */
 
-  bool outputs_valid;
-  bool enabled_seen;
-  flow_u32 frames_ok;
-  flow_u32 frames_dropped;
+  bool outputs_valid; /**< almeno una risposta valida ricevuta */
+  bool enabled_seen; /**< il master ha inviato enable = 0x00C3 */
+  flow_u32 frames_ok; /**< risposte di processo ricevute */
+  flow_u32 frames_dropped; /**< frame scartati per drop_frames */
 };
 
 /** @brief Inizializza lo slave FSoE e il processo di campo simulato.

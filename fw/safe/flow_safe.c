@@ -6,6 +6,17 @@
  * sequenza MU e i suoi canali TX nella mailbox.
  * @ingroup flow_safe
  *
+ * Un ciclo (flow_safe_step) esegue quattro passi nell'ordine: latch dei frame
+ * RX dalla mailbox, sync con lo stack FSoE (il cross-check del PDU in uscita
+ * avviene dentro fsoeapp_send), cross-check delle SafeInputs, logica safe e
+ * cross-check delle SafeOutputs. Ogni divergenza o timeout chiama
+ * safe_note_anomaly(): il ciclo finisce in fail-safe, le uscite vanno a zero e
+ * si chiede il reset, senza aspettare il ciclo successivo.
+ *
+ * I tre payload di cross-check (safe_session_message_t, safe_inputs_message_t,
+ * safe_logic_message_t) portano solo cio' che i due core devono confrontare e
+ * stanno nei 48 byte disponibili (static assert). L'egress porta anche il PDU
+ * generato, perche' due master che producono frame diversi non sono un 1oo2.
  */
 #include "flow_safe.h"
 

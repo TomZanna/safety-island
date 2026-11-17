@@ -3,6 +3,10 @@
  * @brief Helper di memoria del sottosistema flow.
  * @ingroup flow
  *
+ * Le tre funzioni sono banali ma necessarie: il codice safe non deve dipendere
+ * dalla libc. Con FLOW_FREESTANDING=1 questo file fornisce anche i simboli
+ * memcpy/memset/memcmp che il compilatore puo' emettere; con le app attuali
+ * (newlib-nano) quelle tre definizioni restano fuori dal build.
  */
 #include "flow_mem.h"
 

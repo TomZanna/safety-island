@@ -7,32 +7,15 @@
  * del diagramma). Fuori da qui restano solo la scelta della piattaforma
  * (safe_platform) e le callback FSoE (fsoe_app).
  *
+ * Il boot mette in fila: piattaforma e MU18, attesa di mailbox e ICC (2 s,
+ * altrimenti fail-safe), selftest comuni, scambio ICC fra i due core, init
+ * dello stack FSoE master. Solo allora parte il ciclo: se un passo manca il
+ * core non entra mai in DATA e le uscite restano a zero.
+ *
  * Comandi RTT (canale del core): p/i/l/x = fault injection (PDU, inputs, logic,
- * session), '?' = stato.
- */
-
-/**
- * @page rtt_log Formato dei log RTT
- *
- * Ogni secondo ogni ruolo stampa una riga sul proprio canale RTT. Le righe dei
- * due core safe sono volutamente identiche: se un contatore differisce, si vede
- * subito.
- *
- * | Campo | Significato |
- * |---|---|
- * | `cyc` / `bus` | cicli safe eseguiti / cicli da 2 ms del fieldbus |
- * | `Reset...Data` | stato FSoE corrente |
- * | `anom` | anomalie di cross-check cumulate (deve restare 0 in run pulito) |
- * | `icc p/r` | messaggi pubblicati/ricevuti sul canale inter-core |
- * | `to/crc/sq/cy/db` | timeout, CRC errati, seq incoerente, ciclo diverso,
- * doorbell inatteso | | `mu to` | timeout del doorbell MU18 (tx/rx) | | `sess`
- * | Session ID negoziato (deve essere uguale sui due core) | | `hb` | heartbeat
- * dei tre ruoli, letti dalla mailbox | | `out/en/ok/drop/a55` | fieldbus:
- * uscite valide, abilitate, frame buoni, frame scartati, frame invalidi |
- *
- * Il formato e' prodotto da `log_status()` in questo file (safe) e in
- * `fieldbus_main.c` (campo). I comandi RTT sono nel README; l'effetto di ogni
- * handler e' accanto al parser (`safe_keys()`, `fieldbus_keys()`).
+ * session), '?' = stato. La tabella d'uso dei tasti e' nel README; il
+ * significato dei campi stampati da log_status() e' in @ref rtt_log
+ * (docs/diagnosi.md).
  */
 #include "safe.h"
 

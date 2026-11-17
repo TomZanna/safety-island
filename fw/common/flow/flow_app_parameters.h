@@ -5,7 +5,6 @@
  * slave (fsoeapp_verify_parameters), quindi vivono fuori da fw/safe e
  * fw/fieldbus.
  * @ingroup flow
- *
  */
 #ifndef SI_FLOW_APP_PARAMETERS_H
 #define SI_FLOW_APP_PARAMETERS_H

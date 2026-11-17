@@ -61,7 +61,7 @@ flow_u32 flow_shm_count(const flow_shm_channel_t* channel);
  * @param[in]  index   numero di frame da pubblicare (>= 1);
  * @param[in]  len     lunghezza del frame FSoE in byte;
  * @param[in]  fc      frame counter del black channel;
- * @param[in]  flags   metadati dello slot (oggi sempre 0);
+ * @param[in]  flags   metadati dello slot: riservati all'ABI, oggi 0;
  * @param[in]  pdu     contributo del core, `len` byte.
  * @return true se la copia e' arrivata in memoria e l'header dello slot
  *         supera il controllo di CRC-16 (read-back).
@@ -103,7 +103,7 @@ bool flow_shm_read_index(const flow_shm_channel_t* channel,
  * @param[out] channel canale con un solo scrittore;
  * @param[in]  len     lunghezza del frame FSoE in byte;
  * @param[in]  fc      frame counter del black channel;
- * @param[in]  flags   metadati dello slot (oggi sempre 0);
+ * @param[in]  flags   metadati dello slot: riservati all'ABI, oggi 0;
  * @param[in]  pdu     payload del frame;
  * @param[out] index   se non NULL, numero di frame pubblicato.
  * @return true se stage e read-back sono andati a buon fine.

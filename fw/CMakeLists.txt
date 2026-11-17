@@ -2,6 +2,14 @@
 # con il toolchain arm-none-eabi e l'SDK minimo di deps/. Sempre ricompilato (incrementale): basta
 # modificare fw/<app>/*.c, fw/safe/*.c, fw/fieldbus/*.c o fw/common/*.c e rifare "make image"/"make run".
 # Uscite: build/<preset>/fw/<app>/<app>.{elf,bin,map} e compile_commands.json per l'IntelliSense.
+#
+# Opzioni della cache:
+#   FW_APPS=OFF           salta le app (restano SM, immagine e docs)
+#   FW_BUILD_TYPE         CMAKE_BUILD_TYPE delle app (Debug di default: -O0 -g)
+#   <APP>_WAIT_DEBUGGER   l'app aspetta il J-Link prima dell'init; cambia solo board.c, quindi il
+#                         rebuild e' di un file
+# BUILD_ALWAYS sul ExternalProject e' voluto: il ciclo modifica -> make image deve ricompilare
+# subito, senza dipendenze da indovinare. Il target `fw` unisce i tre compile_commands.json in uno.
 include(ExternalProject)
 
 option(FW_APPS "Compila le app di fw/ e le mette in flash.bin" ON)

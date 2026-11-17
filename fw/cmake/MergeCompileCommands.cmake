@@ -1,5 +1,7 @@
 # cmake -DOUT=<file> -DINPUTS=<a;b;...> -P MergeCompileCommands.cmake
-# Unisce piu' compile_commands.json in uno (scrive solo se cambia).
+# Unisce piu' compile_commands.json in uno (scrive solo se cambia). Serve perche' le tre app
+# compilano gli stessi sorgenti con define diverse: il merge tiene una entry per file e
+# IntelliSense/clangd vedono una sola configurazione.
 set(entries "")
 foreach(f IN LISTS INPUTS)
     if(NOT EXISTS "${f}")

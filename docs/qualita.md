@@ -53,9 +53,33 @@ make image
 make docs          # deve restare a 0 warning
 ```
 
-I blocchi `\mermaid` e le tabelle Doxygen nei commenti sono delicati: se
+I blocchi Mermaid e le tabelle Doxygen nei commenti sono delicati: se
 clang-format li rovina, si usano guardie `// clang-format off` / `on` intorno
 al blocco (`ReflowComments` non si tocca senza motivo).
+
+## Commenti Doxygen {#commenti}
+
+Le API, l'ABI, i protocolli e gli invarianti stanno nei commenti Doxygen dei
+file in `fw/`; l'architettura e il perche' delle scelte restano in `docs/`.
+Poche regole, per non scivolare ne' nei telegrammi ne' nella prosa:
+
+1. `@brief` = una frase con il verbo in testa, entro le 80 colonne.
+2. Il corpo dice il *perche'*: ordine delle scritture, scrittore unico,
+   timeout, costanti. Se una frase ripete il nome della funzione, si toglie.
+3. `@param` solo quando aggiunge informazione (unita', range, "solo FIELDBUS",
+   "ignorato"), nell'ordine della firma.
+4. Un fatto, un posto: l'header ha contratto e invarianti, il `.c` ha
+   l'implementazione. La testa del `.c` non ricopia il `@file` dell'header.
+5. Liste solo per enumerazioni (bit di stato, campi di un log, mappa di
+   memoria); il ragionamento va in prosa.
+6. Riferimenti con `@ref`, italiano con traslitterazione ASCII (`e'`, `meta'`),
+   nessuna riga ` *` vuota prima di `*/`.
+7. Tabelle e diagrammi Mermaid restano nei commenti solo con le guardie
+   `// clang-format off` / `on`; se diventano contenuto documentale, il posto
+   e' un file in `docs/` (esempio: la tabella dei log RTT, `@ref rtt_log`).
+
+`make docs` gira con `WARN_AS_ERROR=FAIL_ON_WARNINGS`: un `@param` sbagliato o
+un `@ref` inesistente ferma il build, ed e' voluto.
 
 ## clang-tidy
 

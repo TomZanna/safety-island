@@ -2,7 +2,6 @@
  * @file fsoeport_macros.h
  * @brief Macro richieste dallo stack FSoE (vedi fsoe/src/fsoeport.h).
  * @ingroup flow
- *
  */
 #ifndef FSOEPORT_MACROS_H
 #define FSOEPORT_MACROS_H

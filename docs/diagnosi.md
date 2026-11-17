@@ -12,8 +12,26 @@ subito.
 [m33s/fld] bus 19000 Data out 1 en 1 ok 18705 drop 0 a55 0 hb 3900/3900/3801
 ```
 
-Il formato e il significato dei campi sono documentati in @ref rtt_log, accanto
-alla telemetria (`fw/safe/safe_main.c` e `fw/fieldbus/fieldbus_main.c`).
+Il formato e il significato dei campi sono qui sotto; la riga la produce
+`log_status()` in `fw/safe/safe_main.c` (safe) e in
+`fw/fieldbus/fieldbus_main.c` (campo).
+
+### Formato dei campi {#rtt_log}
+
+| Campo | Significato |
+|---|---|
+| `cyc` / `bus` | cicli safe eseguiti / cicli da 2 ms del fieldbus |
+| `Reset...Data` | stato FSoE corrente |
+| `anom` | anomalie di cross-check cumulate (deve restare 0 in run pulito) |
+| `icc p/r` | messaggi pubblicati/ricevuti sul canale inter-core |
+| `to/crc/sq/cy/db` | timeout, CRC errati, seq incoerente, ciclo diverso, doorbell inatteso |
+| `mu to` | timeout del doorbell MU18 (tx/rx) |
+| `sess` | Session ID negoziato (deve essere uguale sui due core) |
+| `hb` | heartbeat dei tre ruoli, letti dalla mailbox |
+| `out/en/ok/drop/a55` | fieldbus: uscite valide, abilitate, frame buoni, frame scartati, frame invalidi |
+
+I comandi RTT sono nel `README.md`; l'effetto di ogni handler sta accanto al
+parser (`safe_keys()` in `safe_main.c`, `fieldbus_keys()` in `fieldbus_main.c`).
 
 ## I comandi {#comandi}
 

@@ -3,6 +3,14 @@
  * @brief Prove all'avvio (KAT) comuni ai tre ruoli.
  * @ingroup flow_selftest
  *
+ * Le prove sono volutamente piccole e indipendenti dal ruolo: vettori noti per
+ * i due CRC, split/assemble del frame FSoE (11 e 6 byte) e un write/read su due
+ * aree dentro la finestra OCRAM condivisa, fuori dalle strutture. Quest'ultima
+ * e' la prova che i permessi TRDC/DID della patch SM 0002 sono a posto: se
+ * l'area non e' concessa, il fault arriva qui e non a meta' ciclo.
+ *
+ * Un fallimento resta latchato fino al prossimo run: chi chiama decide se
+ * fermarsi, e oggi tutti i ruoli vanno in fail-safe.
  */
 #include "flow_selftest.h"
 

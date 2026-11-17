@@ -6,7 +6,6 @@
  * selftest sono invece specifici del ruolo (fw/safe/safe_main.c,
  * fw/fieldbus/fieldbus_main.c).
  * @ingroup flow
- *
  */
 #ifndef SI_FLOW_INIT_H
 #define SI_FLOW_INIT_H

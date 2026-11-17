@@ -16,27 +16,32 @@
 
 typedef enum flow_a55_result
 {
+  /** Frame nuovo e completo, gia' assemblato. */
   FLOW_A55_OK = 0,
+  /** Nessun frame nuovo: i due core non hanno ancora pubblicato lo stesso
+   * indice, o il contatore e' stato riallineato dopo un fault. */
   FLOW_A55_NO_DATA,
+  /** Argomenti non validi, slot illeggibile o metadati incoerenti fra le due
+   * meta'. */
   FLOW_A55_INVALID
 } flow_a55_result_t;
 
 /** @brief Frame completo assemblato dal fieldbus. */
 typedef struct flow_a55_frame
 {
-  flow_u32 conn;
-  flow_u32 seq;
-  flow_u32 fc;
-  flow_u32 len;
-  flow_u8 pdu[FLOW_PDU_MAX];
+  flow_u32 conn; /**< indice della connessione */
+  flow_u32 seq; /**< indice comune (MIN dei due contatori) */
+  flow_u32 fc; /**< frame counter del black channel */
+  flow_u32 len; /**< lunghezza del frame assemblato */
+  flow_u8 pdu[FLOW_PDU_MAX]; /**< frame FSoE completo */
 } flow_a55_frame_t;
 
 /** @brief Merge delle due meta del frame e contatore degli invalidi. */
 typedef struct flow_a55
 {
-  flow_shm_t* shm;
-  flow_u32 last_delivered[FLOW_NUM_CONNECTIONS];
-  flow_u32 invalid_frames;
+  flow_shm_t* shm; /**< mailbox da leggere (NULL = ruolo inattivo) */
+  flow_u32 last_delivered[FLOW_NUM_CONNECTIONS]; /**< ultimo indice servito */
+  flow_u32 invalid_frames; /**< frame scartati per slot o metadati invalidi */
 } flow_a55_t;
 
 /** @brief Inizializza il lato A55 della mailbox.

@@ -38,6 +38,12 @@ else()
 endif()
 # Link stabile per strumenti esterni (VS Code, gdb a mano): ext/toolchain -> toolchain in uso
 file(MAKE_DIRECTORY "${PROJECT_SOURCE_DIR}/ext")
+# Ricreare il link a ogni configure deve essere idempotente: CREATE_LINK fallisce se la
+# destinazione esiste (e il target cambia quando cambia la versione della toolchain). Si rimuove
+# solo se e' un symlink: un file o una directory vere restano e l'errore lo dice.
+if(IS_SYMLINK "${PROJECT_SOURCE_DIR}/ext/toolchain")
+    file(REMOVE "${PROJECT_SOURCE_DIR}/ext/toolchain")
+endif()
 file(CREATE_LINK "${armgcc}" "${PROJECT_SOURCE_DIR}/ext/toolchain" SYMBOLIC)
 set(SI_ARMGCC_DIR "${armgcc}" PARENT_SCOPE)
 set(SI_GDB "${armgcc}/bin/arm-none-eabi-gdb" PARENT_SCOPE)

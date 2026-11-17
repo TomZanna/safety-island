@@ -3,6 +3,16 @@
  * @brief Messaggi di cross-check fra i due core safe (1oo2).
  * @ingroup flow_mu
  *
+ * Il CRC copre header e payload con il campo `crc` azzerato, cosi' il valore
+ * trasmesso e quello ricalcolato dal ricevente partono dagli stessi byte. La
+ * sequence e' indipendente da quella FSoE e il confronto e' wrap-aware: un
+ * messaggio con sequence uguale o troppo vecchia (differenza >= 0x8000) viene
+ * scartato, cosi' un frame ritardato non viene preso per nuovo.
+ *
+ * flow_mu_exchange() fa due verifiche, non una: pubblica e attende il peer, poi
+ * riverifica il messaggio ricevuto con flow_mu_verify(). Il timeout lo applica
+ * il trasporto, e un solo messaggio invalido basta a far fallire lo scambio:
+ * meglio un ciclo in fail-safe che un cross-check su dati dubbi.
  */
 #include "flow_mu.h"
 

@@ -17,20 +17,25 @@
 typedef struct flow_safe_inputs
 {
   flow_u16 ch_a; /**< bit0 = E-stop OK, bit1 = porta chiusa, bit2 = reset */
-  flow_u16 ch_b;
+  flow_u16 ch_b; /**< gli stessi bit sull'altro canale (1oo2) */
 } flow_safe_inputs_t;
 
 /** @brief Uscite di sicurezza calcolate (4 byte). */
 typedef struct flow_safe_outputs
 {
   flow_u16 enable; /**< FLOW_SAFE_OUTPUT_ENABLED oppure 0 (fail-safe) */
-  flow_u16 status;
+  flow_u16 status; /**< bit FLOW_SAFE_STATUS_* */
 } flow_safe_outputs_t;
 
+/** Bit di ingresso: E-stop rilasciato, porta chiusa, pulsante di reset. */
 #define FLOW_SAFE_IN_ESTOP_OK 0x0001u
 #define FLOW_SAFE_IN_DOOR_CLOSED 0x0002u
 #define FLOW_SAFE_IN_RESET 0x0004u
 
+/** Bit di `flow_safe_outputs_t.status`, in ordine di maschera: abilitato
+ * (0x0001), fault latchato (0x0002), discrepanza in corso (0x0004), E-stop
+ * aperto (0x0008), porta aperta (0x0010), canale A sano (0x0020), canale B
+ * sano (0x0040). */
 #define FLOW_SAFE_STATUS_ENABLED 0x0001u
 #define FLOW_SAFE_STATUS_LATCHED_FAULT 0x0002u
 #define FLOW_SAFE_STATUS_DISCREPANCY 0x0004u

@@ -5,6 +5,15 @@
  * risultato a parita' di ingressi (e i cross-check hanno senso).
  * @ingroup flow_safe
  *
+ * Lo stato e' minimo: abilitazione, fault latchato, contatore di discrepanza e
+ * fronte precedente del reset. Una discrepanza (i due canali non dicono la
+ * stessa cosa) incrementa il contatore e, dopo FLOW_DISCREPANCY_CYCLES cicli
+ * consecutivi, latcha il fault; un solo ciclo coerente riazzera il contatore.
+ * Il reset e' accettato solo su fronte di salita e solo con E-stop rilasciato e
+ * porta chiusa su entrambi i canali, e azzera latch e discrepanza.
+ *
+ * Ogni perdita delle condizioni toglie subito l'uscita: l'enable non ha
+ * istoresi ne' ritardi, perche' il tempo lo decide il ciclo del chiamante.
  */
 #include "flow_safe_logic.h"
 

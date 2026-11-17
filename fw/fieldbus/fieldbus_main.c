@@ -7,6 +7,11 @@
  * tiene da parte la risposta e la pubblica UNA volta per ciclo safe, poi apre
  * il ciclo successivo (barrier).
  *
+ * E' l'owner della memoria condivisa: inizializza prima l'ICC e poi la mailbox,
+ * e il magic di quest'ultima e' il "go" per i due core safe. La risposta si
+ * pubblica prima di aprire il ciclo successivo, cosi' i due master leggono lo
+ * stesso frame e lo stesso numero di ciclo.
+ *
  * Comandi RTT (canale del core): s = discrepanza sugli ingressi, d = scarta 60
  * frame (watchdog FSoE), '?' = stato.
  */

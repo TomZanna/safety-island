@@ -3,6 +3,10 @@
  * @brief CRC software del sottosistema flow.
  * @ingroup flow
  *
+ * Implementazione bit-per-bit, senza tabelle: poche righe, nessuna RAM
+ * occupata e facile da rivedere. Il costo (8 iterazioni per byte) e'
+ * irrilevante sui payload di questo progetto, che sono al massimo 72 byte e
+ * vengono elaborati una volta per ciclo.
  */
 #include "flow_crc.h"
 

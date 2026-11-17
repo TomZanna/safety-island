@@ -1,5 +1,7 @@
 /*
  * Linker script per i core secondari i.MX94 (M33S, M7_0, M7_1): codice e dati nei TCM, niente DDR.
+ * La DDR non e' utilizzabile perche' flash.bin non la inizializza: tutto cio' che e' condiviso sta in
+ * OCRAM, e la resource table RPMsg del SDK e' disattivata (fine < inizio, vedi sotto).
  * Generato da fw/cmake/imx94.cmake (configure_file). Layout come i *_ram.ld del SDK MCUXpresso:
  *   vettori @LD_VECTORS@, codice @LD_TEXT@ (+@LD_TEXT_SIZE@), dati @LD_DATA@ (+@LD_DATA_SIZE@),
  *   non-cacheable @LD_NCACHE@ (+@LD_NCACHE_SIZE@). Simboli usati da startup_*.S e system_*.c del SDK.
@@ -87,6 +89,9 @@ SECTIONS
     __data_end__ = .;
   } > m_data
 
+  /* Regione non-cacheable allineata ai *_ram.ld del SDK. Oggi nessun simbolo
+   * finisce in NonCacheable e i core non configurano l'MPU (docs/limiti.md):
+   * la regione resta riservata a dati che in futuro dovranno evitare la cache. */
   __NCACHE_REGION_START = ORIGIN(m_ncache);
   __NCACHE_REGION_SIZE  = LENGTH(m_ncache);
   __NDATA_ROM = __DATA_ROM + SIZEOF(.data);

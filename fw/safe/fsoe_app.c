@@ -8,6 +8,7 @@
  * consegnato dallo stack e' un safe_fsoe_ref_t (fw/safe/flow_safe.h).
  */
 
+// clang-format off
 /**
  * @page fsoe_states Stati dello stack FSoE
  *
@@ -38,6 +39,7 @@
  * Le callback di questo file sono il lato master; `fw/fieldbus/fsoe_app.c` ha
  * le stesse funzioni per il lato slave.
  */
+// clang-format on
 #include <fsoeapp.h>
 
 #include "flow_app_parameters.h"

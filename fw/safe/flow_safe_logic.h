@@ -36,11 +36,9 @@
 typedef struct flow_safe_logic
 {
   flow_u32 enabled; /**< 1 se le condizioni di sicurezza sono soddisfatte */
-  flow_u32
-      latched_fault; /**< fault latchato: serve un reset a condizioni safe */
+  flow_u32 latched_fault; /**< fault latchato: serve un reset */
   flow_u32 discrepancy_count; /**< cicli consecutivi con i due canali diversi */
-  flow_u32
-      reset_previous; /**< fronte del pulsante di reset al ciclo precedente */
+  flow_u32 reset_previous; /**< fronte del reset al ciclo precedente */
   flow_u32 cycles; /**< cicli eseguiti (telemetria) */
 } flow_safe_logic_t;
 

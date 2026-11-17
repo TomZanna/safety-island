@@ -4,6 +4,15 @@
  * M7_1) con il System Manager.
  * @ingroup board
  *
+ * board_init() fa il minimo che serve a tutte le app: canale RTT del core,
+ * canale SCMI con l'SM (senza il quale non si toccano pin, clock o power) e
+ * SysTick a 1 kHz. Da li' in poi ogni app passa al proprio punto di ingresso.
+ *
+ * WAIT_DEBUGGER e' gestito in SystemInitHook(), che il SDK chiama prima di
+ * .data/.bss e di main(): cosi' un attach a core gia' avviato trova i
+ * breakpoint anche nell'init. g_debugger_go deve restare nell'ELF (lo scrive il
+ * debugger all'attach) e viene azzerato a mano perche' la RAM conserva il
+ * valore della sessione precedente.
  */
 #include "board.h"
 

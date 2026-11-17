@@ -20,35 +20,35 @@
 #include "flow_types.h"
 
 #define FLOW_MU_MAGIC 0x4D553031u /**< "MU01" */
-#define FLOW_MU_VERSION 1u
-#define FLOW_MU_PAYLOAD_MAX 48u
-#define FLOW_MU_MESSAGE_SIZE 72u
-#define FLOW_MU_CHAN_COUNT 4u
-#define FLOW_MU_TAG_MAX FLOW_NUM_CONNECTIONS
+#define FLOW_MU_VERSION 1u /**< versione del protocollo di cross-check */
+#define FLOW_MU_PAYLOAD_MAX 48u /**< payload massimo (72 - 24 di header) */
+#define FLOW_MU_MESSAGE_SIZE 72u /**< header 24 B + payload massimo */
+#define FLOW_MU_CHAN_COUNT 4u /**< canali definiti qui sotto */
+#define FLOW_MU_TAG_MAX FLOW_NUM_CONNECTIONS /**< un tag per connessione */
 
-/** Canali logici. */
-#define FLOW_MU_CHAN_SESSION 0u
-#define FLOW_MU_CHAN_EGRESS 1u
-#define FLOW_MU_CHAN_INPUTS 2u
-#define FLOW_MU_CHAN_LOGIC 3u
+/** Canali logici: ognuno ha la sua sequence TX/RX. */
+#define FLOW_MU_CHAN_SESSION 0u /**< negoziazione del Session ID */
+#define FLOW_MU_CHAN_EGRESS 1u /**< PDU in uscita, prima di pubblicarlo */
+#define FLOW_MU_CHAN_INPUTS 2u /**< SafeInputs e stato della connessione */
+#define FLOW_MU_CHAN_LOGIC 3u /**< SafeOutputs e stato della logica */
 
 /** @brief Messaggio di cross-check: header, routing, sequenza e CRC-32. */
 typedef struct FLOW_PACKED flow_mu_message
 {
-  flow_u32 magic;
-  flow_u16 version;
-  flow_u8 channel;
-  flow_u8 source;
+  flow_u32 magic; /**< FLOW_MU_MAGIC */
+  flow_u16 version; /**< FLOW_MU_VERSION */
+  flow_u8 channel; /**< FLOW_MU_CHAN_* */
+  flow_u8 source; /**< ruolo mittente */
 
-  flow_u16 destination;
-  flow_u16 tag;
-  flow_u32 cycle;
+  flow_u16 destination; /**< ruolo destinatario */
+  flow_u16 tag; /**< tag della connessione */
+  flow_u32 cycle; /**< ciclo a cui il messaggio appartiene */
 
-  flow_u16 sequence;
-  flow_u16 length;
-  flow_u32 crc;
+  flow_u16 sequence; /**< indipendente da FSoE, per canale e tag */
+  flow_u16 length; /**< byte validi del payload */
+  flow_u32 crc; /**< CRC-32 di tutto il messaggio, questo campo a 0 */
 
-  flow_u8 payload[FLOW_MU_PAYLOAD_MAX];
+  flow_u8 payload[FLOW_MU_PAYLOAD_MAX]; /**< decisioni da confrontare */
 } flow_mu_message_t;
 
 FLOW_STATIC_ASSERT(sizeof(flow_mu_message_t) == FLOW_MU_MESSAGE_SIZE,
@@ -59,9 +59,9 @@ FLOW_STATIC_ASSERT(FLOW_MU_PAYLOAD_MAX >= 32u,
 /** @brief Stato delle sequenze TX/RX per canale e tag. */
 typedef struct flow_mu_state
 {
-  flow_core_id_t self;
-  flow_u16 tx_sequence[FLOW_MU_CHAN_COUNT][FLOW_MU_TAG_MAX];
-  flow_u16 rx_sequence[FLOW_MU_CHAN_COUNT][FLOW_MU_TAG_MAX];
+  flow_core_id_t self; /**< ruolo mittente (SAFE_A o SAFE_B) */
+  flow_u16 tx_sequence[FLOW_MU_CHAN_COUNT][FLOW_MU_TAG_MAX]; /**< inviate */
+  flow_u16 rx_sequence[FLOW_MU_CHAN_COUNT][FLOW_MU_TAG_MAX]; /**< accettate */
 } flow_mu_state_t;
 
 /** @brief Inizializza lo stato delle sequenze e l'identita' del core.
