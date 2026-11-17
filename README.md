@@ -95,6 +95,8 @@ fw/m71/   CMakeLists.txt + main.c     app M7_1
 fw/m33s/  CMakeLists.txt + main.c     app M33_1
 fw/common/board.[ch]                  init comune: SCMI con l'SM, RTT (LOG, board_getkey), SysTick, attesa debugger
 fw/common/rtt_shared.[ch]             RTT con control block condiviso, un canale per core
+fw/common/flow_platform_imx94.c       HAL del virtual safe PLC: tick, tempo DWT, RNG, log, fatal
+fw/common/flow/                       virtual safe PLC FSoE (vedi "Virtual safe PLC (FSoE)")
 fw/common/tcm.ld.in                   linker script (solo TCM), generato per core
 fw/cmake/imx94.cmake                  imx94_firmware(): sorgenti SDK, flag, linker, .bin/.map
 ```
@@ -115,6 +117,61 @@ fw/cmake/imx94.cmake                  imx94_firmware(): sorgenti SDK, flag, link
 - **Niente DDR:** `flash.bin` non inizializza la DDR. Il linker script mette tutto nei TCM e disattiva
   l'azzeramento della resource table RPMsg che il SDK fa in DDR all'avvio (sarebbe un HardFault).
 - Uscite: `build/<preset>/fw/<app>/<app>.{elf,bin,map}`, `build/<preset>/compile_commands.json` (unito).
+
+## Virtual safe PLC (FSoE)
+
+Le tre app non sono più solo un banner: insieme formano un **1oo2 FSoE** che gira sulla board. Due core
+eseguono lo stesso codice di sicurezza, il terzo fa il campo. Il documento tecnico (architettura,
+protocolli, misure) è `make docs` → `build/<preset>/docs/safety-island.pdf`; qui solo il minimo per usarlo.
+
+| App | Core | Ruolo |
+|---|---|---|
+| `fw/m70` | M7_0 | `SAFE_A`: master FSoE #1, pubblica la **metà CRC** del frame |
+| `fw/m71` | M7_1 | `SAFE_B`: master FSoE #2, pubblica la **metà dati** |
+| `fw/m33s` | M33_1 | `FIELDBUS`: fa l'A55 — unisce le due metà, esegue lo slave FSoE e il campo |
+
+I due M7 sono il 1oo2 perché la **MU18** (lato A su M7_1, lato B su M7_0) è l'unica MU fra due core
+secondari: l'M33S non ne ha verso gli M7. La MU ha 16 byte per direzione, quindi porta solo il doorbell
+`{seq, tag, channel}` + CRC-32 del payload; il messaggio (72 B) viaggia in OCRAM.
+
+Memoria condivisa (OCRAM, patch SM `0001`/`0002`, concessa alle tre LM):
+
+| Indirizzo | Uso |
+|---|---|
+| `0x204D0000` | control block RTT (canali 0 m33s, 1 m70, 2 m71) |
+| `0x204D4000` | mailbox FSoE: frame spezzato metà CRC / metà dati, 3 banchi |
+| `0x204D5000` | cross-check 1oo2 (payload + CRC) e barrier di ciclo |
+
+```bash
+make run && make rtt
+```
+
+Log atteso: entrambi i master arrivano a `Data` con lo **stesso** session id, `anom 0`, e il fieldbus
+vede le uscite abilitate.
+
+```text
+[m70/A] cyc 3900 Data anom 0 icc p11700 r11700 to0 crc0 sq0 cy0 db0 mu to0/0 sess 0xb7d5 hb 3900/3900/3900
+[m33s/fld] bus 19000 Data out 1 en 1 ok 18705 drop 0 a55 0 hb 3900/3900/3801
+```
+
+Comandi sul canale RTT del core (`make rtt-m70`, `make rtt-m33s`, …):
+
+| Tasto | Dove | Effetto |
+|---|---|---|
+| `p` `i` `l` `x` | m70/m71 | fault injection: PDU, inputs, logic, session → uscite 0, reset, riconnessione |
+| `?` | m70/m71 | stato completo (contatori ICC, anomalie, session id) |
+| `s` | m33s | discrepanza fra i due canali di campo |
+| `d` | m33s | scarta 60 frame (~120 ms) → fa scadere il watchdog FSoE |
+| `?` | m33s | stato del fieldbus |
+
+Note:
+
+- `WAIT_DEBUGGER` è **OFF** nella cache per il ciclo flash→RTT; per il debug con attesa:
+  `cmake --preset mx94evk -DM70_WAIT_DEBUGGER=ON -DM71_WAIT_DEBUGGER=ON -DM33S_WAIT_DEBUGGER=ON`.
+- un attach SWD ferma il core: se apri `make rtt` vedrai un `barrier timeout` e un `WD_EXPIRED` seguito da
+  riconnessione. È il fail-safe che funziona, non un guasto.
+- limiti: il Session ID usa un RNG di banco (DWT+SysTick, `FLOW_BENCH_RNG`, TODO TRNG ELE), niente
+  MPU/ECC, i due core sono uguali (nessuna diversità hardware). Dettagli in `docs/` e `AGENTS.md`.
 
 ## VS Code
 
