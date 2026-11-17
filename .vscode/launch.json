@@ -4,7 +4,9 @@
 //        (J-Link) e lo sblocca dall'attesa (g_debugger_go): parte quando premi Continue in quella sessione.
 //   "Tutti i core: attach": attach ai core gia' in esecuzione.
 //   "<core>: attach": un solo core. Il core si sceglie dal Call Stack / tendina della barra di debug.
-// GDB server da scripts/jlink-gdbserver.sh: riprova se la sonda e' occupata da un'apertura contemporanea.
+// J-Link usa un GDB server per core (il server e' single-core: la sonda e' condivisa a livello di link):
+// ogni sessione e' una connessione, 3 core = 3 connessioni (la sonda ne accetta al massimo 5).
+// I +0.5/+1 s sfasano l'avvio dei GDB server: se gdb parte insieme, la corsa d'avvio fa fallire l'attach.
 // RTT nativo di Cortex-Debug: control block condiviso a 0x204D0000, ogni sessione legge il canale del suo
 // core (m33s 0, m70 1, m71 2; Cortex-Debug lo sceglie sul telnet RTT del suo GDB server): un terminale
 // "RTT <core>" per sessione. Non aprire "make rtt" sugli stessi canali durante il debug.
@@ -17,7 +19,6 @@
             "type": "cortex-debug",
             "request": "attach",
             "servertype": "jlink",
-            "serverpath": "${workspaceFolder}/scripts/jlink-gdbserver.sh",
             "device": "MIMX94398_M7_0",
             "interface": "swd",
             "executable": "${workspaceFolder}/build/mx94evk/fw/m70/m70.elf",
@@ -48,7 +49,6 @@
             "type": "cortex-debug",
             "request": "attach",
             "servertype": "jlink",
-            "serverpath": "${workspaceFolder}/scripts/jlink-gdbserver.sh",
             "device": "MIMX94398_M7_1",
             "interface": "swd",
             "executable": "${workspaceFolder}/build/mx94evk/fw/m71/m71.elf",
@@ -80,7 +80,6 @@
             "type": "cortex-debug",
             "request": "attach",
             "servertype": "jlink",
-            "serverpath": "${workspaceFolder}/scripts/jlink-gdbserver.sh",
             "device": "MIMX94398_M33_1",
             "interface": "swd",
             "executable": "${workspaceFolder}/build/mx94evk/fw/m33s/m33s.elf",
@@ -112,7 +111,6 @@
             "type": "cortex-debug",
             "request": "attach",
             "servertype": "jlink",
-            "serverpath": "${workspaceFolder}/scripts/jlink-gdbserver.sh",
             "device": "MIMX94398_M33_0",
             "interface": "swd",
             "executable": "${workspaceFolder}/build/mx94evk/sm-docker/sm_mx94evk.elf",

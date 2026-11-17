@@ -5,6 +5,9 @@ Il control block RTT e' uno solo, condiviso da M33S, M7_0 e M7_1 (fw/common/rtt_
 un canale per core (0 m33s, 1 m70, 2 m71). Una connessione J-Link (collegata a M7_1 di default, stesso
 indirizzo per tutti i core), senza reset ne' halt, legge i canali e li stampa.
 
+Una connessione J-Link per processo: la sonda ne accetta al massimo 5 in totale, quindi con 3 GDB server
+aperti restano 2 slot (in debug l'RTT passa dal rttConfig della sessione, senza aggiungerne).
+
 Durante il debug in VS Code l'RTT lo legge Cortex-Debug (rttConfig, un canale per sessione): non usare
 questa console sugli stessi canali, due lettori dello stesso canale si rubano i dati.
 
@@ -13,7 +16,6 @@ con --channel, ogni riga va a quel core. Ctrl-C per uscire.
 """
 import argparse
 import os
-import random
 import select
 import sys
 import time
@@ -35,18 +37,20 @@ def main():
     channels = {args.channel: CHANNELS[args.channel]} if args.channel else CHANNELS
 
     jl = pylink.JLink()
-    # La DLL rifiuta aperture della sonda nello stesso istante di un altro programma: si riprova
-    for attempt in range(20):
-        try:
-            jl.open()
-            # Le dialog box della DLL (es. "connect under reset") in un terminale non grafico restano
-            # appese e connect() non torna mai: sempre disabilitate.
-            jl.disable_dialog_boxes()
-            break
-        except pylink.errors.JLinkException as e:
-            if attempt == 19:
-                sys.exit("J-Link non disponibile: %s (la sonda accetta max 5 connessioni)" % e)
-            time.sleep(0.5 + random.random())
+    # Un solo tentativo: se la sonda e' occupata o le 5 connessioni sono esaurite, meglio un errore
+    # chiaro e subito che un retry lungo (l'utente decide quale sessione chiudere).
+    try:
+        jl.open()
+        # Le dialog box della DLL (es. "connect under reset") in un terminale non grafico restano
+        # appese e connect() non torna mai: sempre disabilitate.
+        jl.disable_dialog_boxes()
+    except Exception as e:
+        msg = str(e)
+        if "maximum number of connections" in msg:
+            sys.exit("ERRORE: tutte le 5 connessioni della sonda sono occupate.\n"
+                     "Chiudi una sessione (make rtt, GDB server, RTT Viewer/J-Scope) e riprova.")
+        sys.exit("ERRORE: J-Link non disponibile: %s\n"
+                 "Riprova tra un secondo; se persiste, controlla 'make usb-status'." % msg)
     jl.set_tif(pylink.enums.JLinkInterfaces.SWD)
     jl.set_speed(args.speed)
     jl.exec_command("SetRTTAddr %s" % ADDR)
@@ -73,7 +77,7 @@ def main():
             if ok:
                 break
             jl.rtt_stop()
-        except pylink.errors.JLinkException:
+        except (pylink.errors.JLinkException, ValueError):
             pass
         if not waiting_said:
             print("in attesa del control block RTT (core in attesa del debugger?)", flush=True)
@@ -82,10 +86,19 @@ def main():
 
     target = args.channel or "m70"
     stdin_open = True
+    read_error_said = False
     try:
         while True:
             for ch in channels.values():
-                data = jl.rtt_read(ch, 4096)
+                try:
+                    data = jl.rtt_read(ch, 4096)
+                except Exception as e:
+                    # pylink puo' sollevare ValueError per codici che non conosce (es. -11 quando il
+                    # core e' fermo): meglio una riga di errore che un traceback.
+                    if not read_error_said:
+                        print("\n[errore RTT: %s; continuo]" % e, file=sys.stderr, flush=True)
+                        read_error_said = True
+                    continue
                 if data:
                     sys.stdout.write(bytes(data).decode("utf-8", "replace"))
             sys.stdout.flush()
@@ -101,7 +114,10 @@ def main():
                         target = name.strip()
                         line = text.lstrip()
                     if line.strip():
-                        jl.rtt_write(CHANNELS[target], list(line.encode()))
+                        try:
+                            jl.rtt_write(CHANNELS[target], list(line.encode()))
+                        except Exception as e:
+                            print("\n[errore RTT in scrittura: %s]" % e, file=sys.stderr, flush=True)
             time.sleep(0.01)
     except KeyboardInterrupt:
         pass

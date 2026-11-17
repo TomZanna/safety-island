@@ -21,16 +21,33 @@ fi
 
 sdp_present() { "$UUU" -lsusb 2>&1 | grep -q 'MX943'; }
 
+# Se il caricamento fallisce dopo aver chiuso console RTT, l'errore finale lo ricorda.
+RTT_CLOSED_HINT=""
+
 # Prima di caricare si resetta sempre la board (scripts/reset.sh, RESET_METHOD: di default il reset
 # hardware via J-Link): funziona qualunque sia lo stato (SM bloccato, app in crash, ROM gia' in SDP).
 # Non si puo' capire dallo stato USB se la ROM aspetta davvero: uuu -lsusb elenca la ROM (MX943)
 # anche quando l'SM sta gia' girando. FLASH_NO_RESET=1 salta il reset (board appena resettata a mano).
 load() {
     if [ -z "${FLASH_NO_RESET:-}" ]; then
-        # una console RTT (make rtt) resterebbe collegata a core che si resettano: la si chiude
+        # Le console RTT (make rtt) resterebbero collegate a core che si resettano: si chiudono
+        # (SIGINT = chiusura pulita, libera lo slot J-Link). Se poi il caricamento fallisce,
+        # l'errore finale ricorda che potrebbero esserci altre sessioni J-Link aperte.
+        local closed=()
         for p in $(pgrep -f "$ROOT/ext/venv/bin/python" || true); do
-            grep -q "scripts/rtt.py" "/proc/$p/cmdline" 2>/dev/null && kill -INT "$p" && info "chiusa la console RTT aperta"
+            if grep -q "scripts/rtt.py" "/proc/$p/cmdline" 2>/dev/null; then
+                if kill -INT "$p" 2>/dev/null; then closed+=("$p"); fi
+            fi
         done
+        if [ ${#closed[@]} -gt 0 ]; then
+            info "chiuse ${#closed[@]} console RTT (PID ${closed[*]})"
+            for p in "${closed[@]}"; do
+                for _ in $(seq 1 20); do kill -0 "$p" 2>/dev/null || break; sleep 0.1; done
+            done
+            if [ -z "$RTT_CLOSED_HINT" ]; then
+                RTT_CLOSED_HINT=" Ho chiuso ${#closed[@]} console RTT (PID ${closed[*]}): se il problema è la sonda occupata, chiudi anche GDB server / RTT Viewer / J-Scope / altre console e riprova."
+            fi
+        fi
         RESET_METHOD="${1:-$RESET_METHOD}" "$ROOT/scripts/reset.sh" || return 1
         sleep 1.5   # la ROM si ri-enumera: in WSL il servizio usbip la ri-attacca in ~1-2 s
     fi
@@ -56,7 +73,7 @@ if ! load; then
     retry="$RESET_METHOD"
     if [ -n "${BCU_BOARD:-}" ] && [ "$RESET_METHOD" != bcu ]; then retry=bcu; fi
     info "caricamento non riuscito: secondo tentativo con reset $retry"
-    load "$retry" || die "caricamento fallito (vedi sopra). Prova 'make reset' o un reset a mano"
+    load "$retry" || die "caricamento fallito (vedi sopra). Prova 'make reset' o un reset a mano.${RTT_CLOSED_HINT}"
 fi
 info "caricata in RAM"
 exit 0

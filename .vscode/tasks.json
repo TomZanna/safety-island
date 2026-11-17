@@ -81,7 +81,7 @@
         },
         {
             "label": "Attendi 0.5 s",
-            "detail": "ritardo per gli attach dei compounds (GDB server sfasati)",
+            "detail": "sfasa l'avvio dei GDB server: se partono insieme, gdb può fallire l'attach",
             "type": "shell",
             "command": "sleep 0.5",
             "presentation": {
@@ -91,7 +91,7 @@
         },
         {
             "label": "Attendi 1 s",
-            "detail": "ritardo per gli attach dei compounds (GDB server sfasati)",
+            "detail": "sfasa l'avvio dei GDB server: se partono insieme, gdb può fallire l'attach",
             "type": "shell",
             "command": "sleep 1",
             "presentation": {

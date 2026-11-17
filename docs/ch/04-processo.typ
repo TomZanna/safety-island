@@ -29,8 +29,9 @@ make run       # prova sulla board PRIMA di committare
 - *le patch SM sono la traccia*: ogni modifica alla config NXP vive in `sm/patches/`, numerata, con una
   riga di spiegazione e lo sha256 in `BUILDINFO`;
 - *niente `.exe`*: in WSL si usa `uuu` Linux pinnato; `-DUUU=uuu.exe` è solo un ripiego;
-- *un core alla volta* quando si debugga: gli attach simultanei alla stessa sonda sono la prima causa di
-  "Connecting to J-Link failed".
+- *attach sfasati*: i GDB server dei compound partono a 0,5/1 s l'uno dall'altro (`Attendi …` in
+  `tasks.json`); se partono insieme, gdb può fallire l'attach. J-Link usa un GDB server per core (la
+  sonda è condivisa a livello di link).
 
 == Riproducibilità
 

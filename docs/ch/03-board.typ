@@ -10,7 +10,7 @@ ri-attacca quando ricompaiono (`make usb-status` per lo stato).
   header: ([Interfaccia], [A cosa serve], [Comando], [Trappole]),
   rows: (
     ([USB SDP], [caricare `flash.bin` in RAM dalla boot ROM], [`make run`], [la ROM deve essere in WSL (`1fc9:0027`)]),
-    ([SWD], [debug/attach, reset hardware, RTT], [`make debug-<app>`, `make rtt`], [un core alla volta; max 5 connessioni; LPUART8 = pin SWD]),
+    ([SWD], [debug/attach, reset hardware, RTT], [`make debug-<app>`, `make rtt`], [un GDB server per core; GDB server sfasati; LPUART8 = pin SWD]),
     ([Seriale], [console del monitor SM (LPUART2)], [`make uart`], [sempre per `/dev/serial/by-id/`]),
     ([RTT], [log e input delle app], [`make rtt` / `rtt-<app>`], [due lettori sullo stesso canale si rubano i dati]),
     ([BCU], [reset + boot mode forzato via FTDI], [`make reset` con `BCU_BOARD`], [SW7-1 deve essere OFF sul profilo b1]),
@@ -44,8 +44,10 @@ I device SEGGER standard `MIMX94398_{M33_0,M33_1,M7_0,M7_1}` funzionano senza JL
   periferiche, quindi il problema non si presenta: se compare, è un'immagine sbagliata.
 ]
 
-La sonda accetta *al massimo 5 connessioni* contemporanee: per questo l'RTT passa da un hub e i GDB
-server partono da `scripts/jlink-gdbserver.sh`, che riprova quando un'apertura viene rifiutata.
+J-Link usa *un GDB server per core* (il server è single-core; la sonda è condivisa a livello di link).
+Ogni GDB server e ogni console `make rtt` è una connessione: la sonda ne accetta al massimo *5*, quindi
+con 3 GDB server restano 2 slot. I compound sfasano gli attach di 0,5/1 s, perché se gdb parte insieme
+la corsa d'avvio fa fallire l'attach.
 
 == Seriale
 
@@ -65,7 +67,7 @@ core: `0` m33s, `1` m70, `2` m71. Non si usa `SEGGER_RTT.c` perché la sua init 
 altri core; `fw/common/rtt_shared.c` scrive solo i propri.
 
 ```bash
-make rtt            # tutti i canali (hub su TCP 19100-19102)
+make rtt            # tutti i canali (una connessione per terminale)
 make rtt-m70        # un solo core, con input diretto
 ```
 

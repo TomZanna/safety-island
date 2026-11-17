@@ -43,13 +43,18 @@ Contesto: i.MX94 EVK, silicio **A0**, sviluppo da **WSL**. Leggi prima `README.m
   cancella i canali degli altri core). Motivo: il motore RTT del J-Link è uno per sonda (verificato: con
   un control block per core, più sessioni leggevano tutte quello del primo core). Lettura con
   `scripts/rtt.py` (pylink): più processi su canali diversi ok, due sullo stesso canale si rubano i
-  dati. Cortex-Debug `rttConfig` con J-Link vede un solo canale: non usato. La sonda accetta
-  **max 5 connessioni** contemporanee ("Connecting to J-Link failed" sulla sesta): per questo l'RTT passa
-  da un hub (`rtt.py hub`, una connessione, canali su TCP 19100-19102) a cui si collegano i terminali.
-  Aperture della sonda nello stesso istante vengono rifiutate: `rtt.py` riprova, i GDB server di VS Code
-  partono da `scripts/jlink-gdbserver.sh`, che riprova. Un GDB server che si collega ferma il core
-  finché gdb non lo fa ripartire. `g_debugger_go` deve restare nell'ELF (riferita in `SystemInitHook`):
-  se gdb non la trova, il `postAttachCommands` fallisce e l'attach di Cortex-Debug si blocca. Le app non usano periferiche.
+  dati. Cortex-Debug `rttConfig` è usato: **un canale per sessione** (`port` 0/1/2 in `launch.json`).
+- **J-Link: max 5 connessioni contemporanee.** Ogni GDB server e ogni console `make rtt` è una
+  connessione (in debug l'RTT passa dal `rttConfig`, senza aggiungerne): con 3 GDB server restano 2
+  slot. Un GDB server per core (il server è single-core; la sonda è condivisa a livello di link).
+  L'hub TCP (19100-19102) è stato rimosso: non reintrodurlo.
+- `rtt.py` non riprova: se la sonda è occupata o le connessioni sono esaurite stampa un errore e
+  termina. `make run` chiude le console `make rtt` prima del reset e, se il caricamento fallisce,
+  ricorda di chiudere eventuali altre sessioni J-Link. I compound sfasano gli attach di 0,5/1 s
+  (`Attendi …`): se gdb parte insieme, la corsa d'avvio fa fallire l'attach. Un GDB server che si
+  collega ferma il core finché gdb non lo fa ripartire. `g_debugger_go` deve restare nell'ELF
+  (riferita in `SystemInitHook`): se gdb non la trova, il `postAttachCommands` fallisce e l'attach di
+  Cortex-Debug si blocca. Le app non usano periferiche.
 - Con l'SM, pin mux e clock passano da SCMI. Il `fsl_iomuxc.h` del SDK, se l'SM rifiuta, resta in
   `while (result != SCMI_ERR_SUCCESS);`: se servono periferiche, chiamare `SCMI_PinctrlSettingsConfigure`
   con gestione dell'errore (vedi README "Console seriali", codice nella history git).
@@ -100,7 +105,8 @@ Regole che non si possono sbagliare. Il perché sta in `docs/` (`make docs`).
   per capire se c'è un debugger. `WAIT_DEBUGGER` aspetta `g_debugger_go` (in `SystemInitHook`).
 - Prima di dare la colpa ai permessi dell'SM (TRDC): il DAP ha DID 9 con accesso ovunque (`DEBUG did=9` in
   `devices/MIMX94/configtool/device.cfg` di imx-sm); il problema visto finora era sempre il pin mux.
-- Un core alla volta. Dopo un attach in `-batch` assicurati che parta `monitor go`: se un comando gdb
+- `make debug` è un core alla volta (una sola porta GDB); il compound di VS Code apre 3 sessioni, ognuna
+  con il suo GDB server. Dopo un attach in `-batch` assicurati che parta `monitor go`: se un comando gdb
   fallisce, il batch si interrompe e il core resta fermo.
 - Con il virtual safe PLC attivo un attach (o `make rtt`) **ferma il core** e fa scadere barrier e watchdog
   FSoE: si vede `barrier timeout` + `WD_EXPIRED` e poi la riconnessione. È il comportamento atteso.

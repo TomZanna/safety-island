@@ -179,27 +179,29 @@ Estensioni consigliate (`.vscode/extensions.json`): **Cortex-Debug** (`marus25.c
 
 - **Task** (`Terminal > Run Task`): `Build` (default, `Ctrl+Shift+B`), `Run` (core partono subito),
   `Run (attesa debugger)` (`WAIT_DEBUGGER=ON` per tutti: ricompila il firmware, ~7 s), `Reset`,
-  `Deps: sync`, `USB: stato`, `UART: monitor SM`, `RTT: M7_0` / `M7_1` / `M33S` / `tutti`.
+  `Deps: sync`, `USB: stato`, `UART: monitor SM`, `RTT: tutti (terminale)`.
 - **Debug** (`F5`):
-  - `Tutti i core: run + attach` (compound): task `Run (attesa debugger) + RTT` (build con
-    `WAIT_DEBUGGER=ON`, caricamento, terminali RTT), poi attach a M7_0, M7_1 (+0,5 s) e M33S (+1 s).
+  - `Tutti i core: run + attach` (compound): task `Run (attesa debugger)` (build con
+    `WAIT_DEBUGGER=ON` e caricamento), poi attach a M7_0, M7_1 (+0,5 s) e M33S (+1 s).
     Ogni core resta fermo prima di `main` finché il suo debugger non si attacca; l'attach J-Link ferma
     il core: parte quando premi Continue in quella sessione. Nessuna sincronizzazione fra core.
-  - `Tutti i core: attach` (compound): attach ai core già in esecuzione (+ terminali RTT).
+  - `Tutti i core: attach` (compound): attach ai core già in esecuzione (+ RTT dal `rttConfig` di ogni sessione).
   - `<core>: attach`: un solo core.
   - `M33_0 (SM): attach`: l'SM (simboli da `sm-verify`/`sm-update`).
 
   Il core si sceglie dal Call Stack o dalla tendina della barra di debug; stop chiude tutte le sessioni.
-  Il GDB server parte da `scripts/jlink-gdbserver.sh` (`serverpath`), che riprova se la sonda è occupata
-  da un'apertura contemporanea; la sonda accetta max 5 connessioni (hub RTT + 3 GDB server = 4).
+  J-Link usa **un GDB server per core** (il server è single-core: la sonda è condivisa a livello di
+  link), quindi ogni sessione è una connessione, l'RTT compreso (`rttConfig`): 3 core = 3 connessioni
+  (vedi il limite in [Log: SEGGER RTT](#log-segger-rtt)).
   Live Watch è per sessione. Ogni sessione scrive `g_debugger_go = 1` all'attach (`postAttachCommands`):
   la variabile è sempre nel firmware (se gdb non la trova l'attach si blocca). gdb è quello della
   toolchain scaricata. Il terminale "gdb-server" logga ogni lettura di registri e memoria: va lasciato
   così (`-silent` nasconde anche la riga che Cortex-Debug aspetta).
-- **Log dei core (RTT):** ogni configurazione di debug apre (preLaunchTask) i task `RTT: M7_0`,
-  `RTT: M7_1`, `RTT: M33S`: un terminale per core nel pannello TERMINAL, con input, affiancabili con lo
-  split; restano validi qualunque core tu stia debuggando. Con `Run` si chiudono e si riaprono dopo il
-  caricamento. Vedi [Log: SEGGER RTT](#log-segger-rtt).
+- **Log dei core (RTT):** ogni sessione di debug mostra il canale del suo core (`rttConfig`: 0 m33s,
+  1 m70, 2 m71) in un terminale `RTT <core>`, con input, affiancabile con lo split. Non serve una
+  connessione J-Link in più: l'RTT passa dal GDB server della sessione. Non aprire `make rtt` sugli
+  stessi canali durante il debug: due lettori si rubano i dati.
+  Vedi [Log: SEGGER RTT](#log-segger-rtt).
 - **Variabili dal vivo:** vista **Cortex Live Watch** nella sidebar Run and Debug (`liveWatch` nel
   `launch.json`): aggiungi espressioni (`s_ticks`, campi di struct...) e si aggiornano 4 volte al secondo
   a core in esecuzione. La vista Watch normale si aggiorna solo a core fermo.
@@ -209,7 +211,7 @@ Estensioni consigliate (`.vscode/extensions.json`): **Cortex-Debug** (`marus25.c
 - **Breakpoint nell'init:** con `Run` normale l'app è già partita quando il debugger si attacca (i tick
   avanzano prima dell'attach). Con `Run (attesa debugger)` (o `-D<APP>_WAIT_DEBUGGER=ON`) ogni core si
   ferma prima di `main` finché il suo debugger non scrive `g_debugger_go = 1` (lo fanno il
-  `launch.json` e `make debug-<app>`). Senza debugger, un core con l'attesa attiva resta fermo; l'hub RTT
+  `launch.json` e `make debug-<app>`). Senza debugger, un core con l'attesa attiva resta fermo; `make rtt`
   aspetta il control block finché un core non arriva a `board_init()`.
 - **IntelliSense:** `.vscode/c_cpp_properties.json` usa `build/mx94evk/compile_commands.json` (scritto da
   `make image`/`make fw`).
@@ -238,21 +240,21 @@ descrittori). Una sessione J-Link collegata a **qualunque** core vede tutti i ca
 per tutti). Non bloccante: se nessuno legge e il buffer è pieno, il messaggio si perde.
 
 - `make rtt`: tutti i core in un terminale (le righe hanno già `[m70]`...); input con `m70: testo`.
-- `make rtt-m70` (`-m71`, `-m33s`): solo quel core, input diretto. Si possono aprire tutti insieme, anche
-  più terminali sullo stesso core.
-- **Hub:** la sonda J-Link accetta al massimo **5 connessioni** contemporanee (provato). Per lasciarne ai
-  GDB server, l'RTT usa una sola connessione: il primo terminale avvia un hub (`scripts/rtt.py hub`) che
-  legge i tre canali e li serve su porte TCP locali (`19100` m33s, `19101` m70, `19102` m71); i
-  terminali si collegano all'hub. Con il debug multi-core: 1 hub + 3 GDB server = 4 connessioni.
-  `scripts/rtt.sh --stop` chiude l'hub; log in `build/<preset>/rtt-hub.log`.
-- VS Code: task `RTT: M7_0`, `RTT: M7_1`, `RTT: M33S` (un terminale per core) e `RTT: tutti`; le
-  configurazioni di debug li aprono da sole (vedi [VS Code](#vs-code)).
-- Lettura via DLL J-Link (`pylink` nel venv di `ext/`): hub collegato a M7_1 di default (`RTT_CORE`),
-  senza reset né halt. `make run` chiude l'hub (e i terminali) prima del reset; si riapre al primo
-  terminale.
+- `make rtt-m70` (`-m71`, `-m33s`): solo quel core, input diretto. Ogni console è una connessione.
+- **Limite della sonda:** il J-Link accetta al massimo **5 connessioni** contemporanee. Ogni
+  `make rtt`/`rtt-<app>` e ogni GDB server ne occupa una (in debug l'RTT passa dal `rttConfig` della
+  sessione, senza aggiungerne); con 3 GDB server restano 2 slot. Anche RTT Viewer, J-Scope e
+  `JLinkRTTLogger` contano. `make rtt` non riprova: se la sonda è occupata stampa un errore e termina.
+- `make run` chiude le console `make rtt` prima del reset; se il caricamento fallisce, l'errore lo dice
+  e ricorda di chiudere eventuali altre sessioni J-Link (GDB server, RTT Viewer, ...).
+- VS Code: task `RTT: tutti (terminale)` per la console fuori dal debug; in debug l'RTT arriva dal
+  `rttConfig` di ogni sessione (vedi [VS Code](#vs-code)).
+- Lettura via DLL J-Link (`pylink` nel venv di `ext/`): si collega a M7_1 di default (`RTT_CORE`),
+  senza reset né halt.
 - Strumenti SEGGER (RTT Viewer, J-Scope, `JLinkRTTLogger`): control block a `0x204D0000`, canale =
   core. Usali con le console chiuse sullo stesso canale.
-- Cortex-Debug `rttConfig` non è usato: con J-Link il GDB server espone un solo canale RTT.
+- Cortex-Debug `rttConfig` è usato con J-Link: ogni sessione legge **un canale** (il `port` 0/1/2 del
+  suo core), che è esattamente il caso d'uso del control block condiviso.
 - Nessuna D-cache attiva sull'area (gli M7 abilitano solo la I-cache, l'M33S solo la cache del bus
   codice): se se ne abilita una, l'area va resa non-cacheable via MPU.
 
