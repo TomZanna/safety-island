@@ -41,4 +41,5 @@ add_custom_target(si-help
     COMMAND "${CMAKE_COMMAND}" -E echo "  sm-verify    ricostruisce l'SM nel Docker e confronta con sm/ (sm-update: sovrascrive)"
     COMMAND "${CMAKE_COMMAND}" -E echo "  docs         build/<preset>/docs/safety-island.pdf;  docs-live: typst watch"
     COMMAND "${CMAKE_COMMAND}" -E echo "  docker-image il target image dentro un container"
+    COMMAND "${CMAKE_COMMAND}" -E echo "  clean, distclean, clean-all   pulizia (solo make): build del preset / tutti i build / anche ext e .west"
     VERBATIM)
