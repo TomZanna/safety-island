@@ -20,6 +20,7 @@
 #define FLOW_MU_MAGIC 0x4D553031u /* "MU01" */
 #define FLOW_MU_VERSION 1u
 #define FLOW_MU_PAYLOAD_MAX 48u
+#define FLOW_MU_MESSAGE_SIZE 72u
 #define FLOW_MU_CHAN_COUNT 4u
 #define FLOW_MU_TAG_MAX FLOW_NUM_CONNECTIONS
 
@@ -47,7 +48,7 @@ typedef struct FLOW_PACKED flow_mu_message
     flow_u8 payload[FLOW_MU_PAYLOAD_MAX];
 } flow_mu_message_t;
 
-FLOW_STATIC_ASSERT(sizeof(flow_mu_message_t) == 72u, "flow_mu_message_t must be 72 bytes");
+FLOW_STATIC_ASSERT(sizeof(flow_mu_message_t) == FLOW_MU_MESSAGE_SIZE, "flow_mu_message_t must be 72 bytes");
 FLOW_STATIC_ASSERT(FLOW_MU_PAYLOAD_MAX >= 32u, "MU payload must fit the cross-check messages");
 
 typedef struct flow_mu_state

@@ -114,6 +114,11 @@ function(imx94_firmware target)
             "${flow_dir}/flow_mu.c"
             "${flow_dir}/flow_icc.c"
             "${flow_dir}/flow_mu18.c"
+            "${flow_dir}/flow_safe_logic.c"
+            "${flow_dir}/flow_safe.c"
+            "${flow_dir}/flow_a55.c"
+            "${flow_dir}/flow_field.c"
+            "${flow_dir}/flow_fsoe_app.c"
             "${flow_dir}/flow_selftest.c"
             "${flow_dir}/flow.c"
             "${FW_COMMON}/flow_platform_imx94.c")

@@ -27,7 +27,10 @@
 
 #define FLOW_ICC_MAGIC 0x49434331u /* "ICC1" */
 #define FLOW_ICC_DIRS 2u           /* 0 = SAFE_A -> SAFE_B, 1 = SAFE_B -> SAFE_A */
-#define FLOW_ICC_PAYLOAD_MAX FLOW_MU_PAYLOAD_MAX
+
+/* Lo slot porta l'INTERO messaggio MU (header + payload: 72 byte), non solo il
+ * payload: e' quello che flow_mu_exchange() scrive e verifica. */
+#define FLOW_ICC_PAYLOAD_MAX FLOW_MU_MESSAGE_SIZE
 
 typedef struct FLOW_PACKED flow_icc_slot
 {
@@ -47,7 +50,7 @@ typedef struct FLOW_PACKED flow_icc
     flow_icc_slot_t slot[FLOW_ICC_DIRS][FLOW_MU_CHAN_COUNT];
 } flow_icc_t;
 
-FLOW_STATIC_ASSERT(sizeof(flow_icc_slot_t) == 64u, "flow_icc_slot_t must be 64 bytes");
+FLOW_STATIC_ASSERT(sizeof(flow_icc_slot_t) == 88u, "flow_icc_slot_t must be 88 bytes");
 FLOW_STATIC_ASSERT(sizeof(flow_icc_t) <= 1024u, "flow_icc_t does not fit the reserved 1 KB");
 
 typedef struct flow_icc_stats

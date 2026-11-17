@@ -87,7 +87,7 @@ bool flow_mu_exchange(flow_mu_state_t *state, flow_u8 channel, flow_u8 tag, flow
 
     message.crc = mu_message_crc(&message);
 
-    if (!flow_platform_mu_post(state->self, channel, tag, &message, (flow_u32)sizeof(message))) {
+    if (!flow_platform_mu_post(state->self, channel, tag, cycle, &message, (flow_u32)sizeof(message))) {
         return false;
     }
 

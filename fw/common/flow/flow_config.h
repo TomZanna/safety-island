@@ -65,10 +65,12 @@
 #define FLOW_MU_TIMEOUT_US 5000u
 #endif
 /* Attesa massima al rendezvous di ciclo (a 3: SAFE_A, SAFE_B, FIELDBUS). Il
- * ciclo lo apre il fieldbus dopo che i due core safe hanno finito: il tempo di
- * attesa puo' quindi essere quasi un periodo safe intero, piu' il margine. */
+ * ciclo lo apre il fieldbus dopo che i due core safe hanno finito: l'attesa puo'
+ * essere quasi un periodo safe intero piu' il tempo che il fieldbus passa ad
+ * aspettare l'altro core (15 ms). Margine: 3 periodi, sempre sotto il watchdog
+ * FSoE (100 ms). */
 #ifndef FLOW_BARRIER_TIMEOUT_US
-#define FLOW_BARRIER_TIMEOUT_US 15000u
+#define FLOW_BARRIER_TIMEOUT_US 30000u
 #endif
 
 /* Logica safe. */

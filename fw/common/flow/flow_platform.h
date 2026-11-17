@@ -34,8 +34,10 @@ void flow_platform_fatal(void) FLOW_NORETURN;
 void flow_platform_log(const char *tag, const char *format, ...) __attribute__((format(printf, 2, 3)));
 
 /* Trasporto dei messaggi di cross-check 1oo2 (flow_mu.c costruisce e verifica
- * sequenza, routing e CRC-32; qui c'e' solo il trasporto). */
-bool flow_platform_mu_post(flow_core_id_t self, flow_u8 channel, flow_u8 tag, const void *message, flow_u32 size);
+ * sequenza, routing e CRC-32; qui c'e' solo il trasporto). `cycle` e' il ciclo
+ * a cui il messaggio appartiene: chi riceve lo confronta con il proprio. */
+bool flow_platform_mu_post(flow_core_id_t self, flow_u8 channel, flow_u8 tag, flow_u32 cycle, const void *message,
+    flow_u32 size);
 
 bool flow_platform_mu_wait(flow_core_id_t self, flow_u8 channel, flow_u8 tag, flow_u32 cycle, void *message,
     flow_u32 max_size, flow_u32 timeout_us);

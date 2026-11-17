@@ -152,13 +152,14 @@ void flow_platform_log(const char *tag, const char *format, ...)
     rtt_write(line, length);
 }
 
-bool flow_platform_mu_post(flow_core_id_t self, flow_u8 channel, flow_u8 tag, const void *message, flow_u32 size)
+bool flow_platform_mu_post(flow_core_id_t self, flow_u8 channel, flow_u8 tag, flow_u32 cycle, const void *message,
+    flow_u32 size)
 {
     const flow_core_id_t peer = (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
 
-    /* Il ciclo e' quello aperto dalla barrier: durante l'esecuzione di un ciclo
-     * nessuno la fa avanzare (serve ready[A] e ready[B]). */
-    return flow_icc_post(self, peer, channel, tag, flow_icc_cycle_current(), message, (flow_u16)size);
+    /* Il ciclo lo passa chi manda: lo slot e il messaggio portano lo stesso numero,
+     * senza dipendere da quando la barrier avanza. */
+    return flow_icc_post(self, peer, channel, tag, cycle, message, (flow_u16)size);
 }
 
 bool flow_platform_mu_wait(flow_core_id_t self, flow_u8 channel, flow_u8 tag, flow_u32 cycle, void *message,

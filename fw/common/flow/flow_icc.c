@@ -180,6 +180,15 @@ bool flow_icc_cycle_release(flow_u32 cycle, flow_u32 timeout_us)
     const flow_u32 start = flow_platform_time_us();
     bool ok = true;
 
+    /* Fase di avvio: finche' i due core safe non hanno completato un ciclo il
+     * numero di ciclo NON avanza. Altrimenti il fieldbus lo farebbe correre
+     * mentre i core sono ancora nel boot/selftest e i due partirebbero con numeri
+     * diversi (e i cross-check, che confrontano il `cycle`, fallirebbero sempre). */
+    if ((ICC_ACQUIRE(&s_icc->ready[FLOW_CORE_SAFE_A]) == 0u) ||
+        (ICC_ACQUIRE(&s_icc->ready[FLOW_CORE_SAFE_B]) == 0u)) {
+        return true;
+    }
+
     /* Attende i due core safe. Su timeout si apre comunque il ciclo successivo:
      * chi e' vivo lo rileva dal cross-check e va in fail-safe, senza che un core
      * morto blocchi tutto. */
