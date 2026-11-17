@@ -38,7 +38,7 @@ vengono scartati) il master va in `WD_EXPIRED` e riparte da `Reset` — comporta
 
 == La logica safe
 
-La funzione di sicurezza è *pura* (`flow_safe_logic.c`): stessi ingressi, stesso stato, stesse uscite, su
+La funzione di sicurezza è *pura* (`fw/safe/flow_safe_logic.c`): stessi ingressi, stesso stato, stesse uscite, su
 entrambi i core. Non ha tempo, I/O né casualità: è la condizione perché i due risultati siano confrontabili.
 
 #si-table(

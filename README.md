@@ -46,7 +46,7 @@ CMakeLists.txt       superbuild: include i moduli
 CMakePresets.json    mx94evk, mx94alt, docker
 cmake/               si_tool() (scarica un tool per l'host con sha256), verifica sha256, helper
 deps/                west.yml (SDK MCUXpresso minimo, pinnato) + toolchain Arm per l'host
-fw/                  app dei core secondari: m33s/, m70/, m71/ + common/ (board glue) + cmake/
+fw/                  app (m33s, m70, m71) + ruoli (safe/, fieldbus/) + common/ (board glue e ABI) + cmake/
 ele/                 firmware ELE NXP: scaricato, EULA, ele.sha256
 sm/                  binari SM committati + Dockerfile riproducibile + patches/ alla config NXP
 image/               mkimage_imx8 (ExternalProject) e flash.bin
@@ -90,19 +90,24 @@ Un'app completa per core, bare metal (niente RTOS), con un SDK MCUXpresso **mini
 esterna:
 
 ```
-fw/m70/   CMakeLists.txt + main.c     app M7_0   (imx94_firmware(m70 CORE cm7_core0 ...))
-fw/m71/   CMakeLists.txt + main.c     app M7_1
-fw/m33s/  CMakeLists.txt + main.c     app M33_1
+fw/m70/   CMakeLists.txt + main.c     app M7_0:  board_init + safe_main(FLOW_CORE_SAFE_A)
+fw/m71/   CMakeLists.txt + main.c     app M7_1:  board_init + safe_main(FLOW_CORE_SAFE_B)
+fw/m33s/  CMakeLists.txt + main.c     app M33_1: board_init + fieldbus_main()
+fw/safe/                              ruolo 1oo2 (m70+m71): 4 passi, logica safe, callback master, ciclo, MU18
+fw/fieldbus/                          ruolo campo (m33s): slave FSoE, campo, merge A55, callback slave, ciclo
 fw/common/board.[ch]                  init comune: SCMI con l'SM, RTT (LOG, board_getkey), SysTick, attesa debugger
 fw/common/rtt_shared.[ch]             RTT con control block condiviso, un canale per core
 fw/common/flow_platform_imx94.c       HAL del virtual safe PLC: tick, tempo DWT, RNG, log, fatal
-fw/common/flow/                       virtual safe PLC FSoE (vedi "Virtual safe PLC (FSoE)")
+fw/common/flow/                       ABI e astrazioni condivise del virtual safe PLC (mailbox, ICC, MU, CRC)
 fw/common/tcm.ld.in                   linker script (solo TCM), generato per core
-fw/cmake/imx94.cmake                  imx94_firmware(): sorgenti SDK, flag, linker, .bin/.map
+fw/cmake/imx94.cmake                  imx94_firmware(): sorgenti SDK e del ruolo, flag, linker, .bin/.map
 ```
 
-- L'app di partenza scrive via RTT un banner (agente SCMI e clock del core), un heartbeat ogni secondo e
-  fa l'eco dei caratteri ricevuti. Nessuna periferica: niente UART, pin o clock da chiedere all'SM. Aggiungi sorgenti in `SOURCES` di `imx94_firmware()` nel `CMakeLists.txt` dell'app.
+- Ogni app è solo wiring: `board_init()`, banner RTT (agente SCMI e clock del core) e punto di ingresso del
+  ruolo. Il codice di un ruolo sta in `fw/safe/` o `fw/fieldbus/`; in `fw/common/` solo quello che serve
+  identico a più ruoli. `ROLE` in `imx94_firmware()` sceglie i sorgenti (la struttura è in
+  `docs/ch/10-architettura.typ`).
+- Nessuna periferica: niente UART, pin o clock da chiedere all'SM.
 - **SDK come dipendenza, non copiato:** `deps/west.yml` pinna per commit 4 repo NXP (`mcuxsdk-core`,
   `mcux-devices-imx`, `mcux-component`, `mcu-sdk-cmsis`), clonati shallow in `ext/sdk/` da west
   (venv in `ext/venv`). Dell'SDK usiamo solo: CMSIS, header/startup/`system_*.c` del MIMX94398, driver

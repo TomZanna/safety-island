@@ -104,4 +104,9 @@ make debug-m71                # interattivo
   `g_debugger_go = 1` (Cortex-Debug lo fa in `postAttachCommands`). Per il ciclo flash→RTT conviene
   `WAIT_DEBUGGER=OFF`, altrimenti i core non partono finché non li si attacca;
 - l'attach ferma il core: dopo un `-batch` assicurati che parta `monitor go`, altrimenti resta fermo;
-- `DHCSR.C_DEBUGEN` resta a 1 anche dopo una sessione: non usarlo per capire se c'è un debugger.
+- `DHCSR.C_DEBUGEN` resta a 1 anche dopo una sessione: non usarlo per capire se c'è un debugger;
+- `g_debugger_go` deve restare nell'ELF (è referenziata in `SystemInitHook`, `fw/common/board.c`): se gdb
+  non la trova, il `postAttachCommands` fallisce e l'attach di Cortex-Debug si blocca;
+- prima di dare la colpa ai permessi dell'SM (#term("trdc")): il DAP ha DID 9 con accesso ovunque
+  (`DEBUG did=9` in `devices/MIMX94/configtool/device.cfg` di imx-sm); il problema visto finora era sempre
+  il pin mux.

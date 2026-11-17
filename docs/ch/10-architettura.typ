@@ -10,11 +10,11 @@ qui non è un componente di sicurezza.
 
 #si-table(
   columns: (1fr, 1.3fr, 1.5fr, 2.9fr),
-  header: ([App], [Core], [`FLOW_CORE_ID`], [Ruolo]),
+  header: ([App], [Core], [Costante], [Ruolo]),
   rows: (
-    ([`fw/m70`], [M7_0 @ 800 MHz], [0 — `SAFE_A`], [master FSoE #1, pubblica la *metà CRC* del frame, lato *B* della MU18]),
-    ([`fw/m71`], [M7_1 @ 800 MHz], [1 — `SAFE_B`], [master FSoE #2, pubblica la *metà dati*, lato *A* della MU18]),
-    ([`fw/m33s`], [M33_1 @ 266 MHz], [2 — `FIELDBUS`], [ruolo A55: unisce le due metà, esegue lo slave FSoE, genera il campo]),
+    ([`fw/m70`], [M7_0 @ 800 MHz], [`SAFE_A`], [master FSoE #1, pubblica la *metà CRC* del frame, lato *B* della MU18]),
+    ([`fw/m71`], [M7_1 @ 800 MHz], [`SAFE_B`], [master FSoE #2, pubblica la *metà dati*, lato *A* della MU18]),
+    ([`fw/m33s`], [M33_1 @ 266 MHz], [`FIELDBUS`], [ruolo A55: unisce le due metà, esegue lo slave FSoE, genera il campo]),
   ),
 )
 
@@ -51,6 +51,36 @@ memoria condivisa.
     line((4.0, -0.75), (2.6, -1.6), stroke: 0.6pt + luma(120), mark: (end: ">"))
   }),
 ) <fig-architettura>
+
+== Struttura del codice
+
+Il codice segue i ruoli: ogni app linka *solo* i sorgenti del proprio ruolo e il ruolo è un argomento del
+punto di ingresso, non una macro di build. Un core non compila mai il codice dell'altro e il revisore legge
+una strada sola.
+
+#si-table(
+  columns: (1.5fr, 3fr, 1.3fr),
+  header: ([Cartella], [Contenuto], [Linkata da]),
+  rows: (
+    ([`fw/m70`, `fw/m71`, `fw/m33s`], [solo wiring dell'app: `board_init()`, banner, punto di ingresso del ruolo], [—]),
+    ([`fw/safe/`], [ruolo 1oo2: i 4 passi, la logica safe, le callback lato master, il ciclo, il lato MU18], [`m70`, `m71`]),
+    ([`fw/fieldbus/`], [ruolo campo: slave FSoE, campo simulato, merge A55, callback lato slave, ciclo], [`m33s`]),
+    ([`fw/common/flow/`], [ABI e astrazioni condivise: tipi e config, mailbox, ICC, MU, CRC, mem, selftest KAT, port FSoE], [tutti]),
+    ([`fw/common/`], [glue di board: SCMI, RTT, linker script, HAL della piattaforma], [tutti]),
+    ([`fw/common/fsoe/`], [libreria rt-labs vendored, non si modifica], [tutti, archivio per app]),
+  ),
+)
+
+I confini:
+
+- il codice di un ruolo sta in `fw/safe/` o `fw/fieldbus/`, mai in `common/`;
+- in `fw/common/flow/` vive ciò che serve identico a più ruoli e *non conosce* il ruolo: al più lo riceve
+  come parametro `flow_core_id_t`, mai come macro che accende pezzi di file;
+- la variabilità ha un solo punto di dispatch: `ROLE` in `imx94_firmware()` sceglie i sorgenti, il `main.c`
+  dell'app passa la propria identità (`safe_main(FLOW_CORE_SAFE_A)`, `safe_main(FLOW_CORE_SAFE_B)`,
+  `fieldbus_main()`);
+- un protocollo condiviso resta in `common/flow/` anche se oggi lo usa un ruolo solo (mailbox, cross-check,
+  #term("icc")): è ABI documentata in `docs/ap/appendici.typ` e i suoi `_Static_assert` sono il contratto.
 
 == Mappa di memoria
 

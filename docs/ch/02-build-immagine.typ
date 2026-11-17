@@ -43,12 +43,13 @@ Niente `west build`, Kconfig o board files: il linker script è nostro (`fw/comm
 
 Ogni app è un progetto CMake separato (`fw/m70/CMakeLists.txt` è una riga), compilato come
 `ExternalProject` con il toolchain Arm e l'SDK. La funzione `imx94_firmware()` sceglie CPU, cache, indirizzi
-dei TCM, sorgenti SDK, flag e linker. La keyword `FLOW_ROLE` aggiunge il virtual safe PLC e la libreria FSoE:
+dei TCM, sorgenti SDK, flag e linker. La keyword `ROLE` aggiunge il virtual safe PLC, linka il codice del
+ruolo (`fw/safe/` o `fw/fieldbus/`) e la libreria FSoE:
 
 #si-listing(
-  caption: [La keyword `FLOW_ROLE` di `imx94_firmware()`: sorgenti, include, `FLOW_CORE_ID` e libreria FSoE],
+  caption: [La keyword `ROLE` di `imx94_firmware()`: sorgenti del ruolo, include, libreria FSoE e controllo di coerenza con il core],
   src: "/fw/cmake/imx94.cmake",
-  lines: (76, 122),
+  lines: (77, 148),
 )
 
 #nota[

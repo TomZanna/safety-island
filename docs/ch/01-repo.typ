@@ -16,7 +16,7 @@ safety-island/
   deps/                 west.yml: 4 repo SDK NXP pinnati per SHA (in ext/sdk)
   ele/                  firmware ELE NXP: URL + sha256, scaricato (EULA)
   sm/                   System Manager: binari committati + patches/ + Dockerfile
-  fw/                   firmware dei core secondari (m33s, m70, m71) + common
+  fw/                   firmware: app (m70, m71, m33s) + ruoli (safe/, fieldbus/) + common
   image/                mkimage → flash.bin (AHAB + SM + app)
   board/                target make: run, reset, uart, rtt, debug, usb-*
   scripts/              script bash/python usati dai target
@@ -34,7 +34,7 @@ safety-island/
     ([`deps/`], [pinna toolchain Arm e SDK MCUXpresso minimo], [solo `west.yml`], [`make deps`]),
     ([`ele/`], [fornisce il firmware ELE (`mx943a0-ahab-container.img`)], [no (EULA NXP)], [`make ele`]),
     ([`sm/`], [binari del System Manager + patch locali + Dockerfile], [sì (`.bin`, `SHA256SUMS`)], [`make sm-update` / `sm-verify`]),
-    ([`fw/`], [le tre app dei core secondari e il codice comune], [sì], [`make fw` / `make image`]),
+    ([`fw/`], [le tre app, i due ruoli (`safe/`, `fieldbus/`) e il codice comune], [sì], [`make fw` / `make image`]),
     ([`image/`], [impacchetta AHAB + SM + app in `flash.bin`], [sì (solo CMake)], [`make image`]),
     ([`board/`], [target che parlano con la board], [sì], [(nessuna uscita)]),
     ([`scripts/`], [implementazione dei target: USB, uuu, RTT, gdb, SM in Docker], [sì], [-]),
