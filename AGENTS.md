@@ -52,6 +52,18 @@ dedurre da codice o documentazione, non si duplica in questo file.
 - **Config del checkout locale** (`~/imx-sm`) possono essere di un tag diverso: controlla sempre
   `build/_deps/imx-sm-<tag>/configs/` o `git show <tag>:configs/...`.
 
+## Ambiente pulito e bootstrap
+
+- **Tutto parte dai target.** In un ambiente pulito non si lanciano comandi a mano: un target che ha
+  bisogno di qualcosa se lo scarica o lo dichiara nei `add_dependencies`. Se serve un'istruzione manuale
+  per compilare, caricare o documentare, è un bug del target.
+- **I tool si dichiarano una volta sola**: `si_tool()` (versione + sha256), `deps/west.yml`,
+  `ExternalProject` per i sorgenti. Niente "installa X" nel README se X è scaricabile: prerequisiti
+  host, opzionali ed eccezioni stanno nel `README.md` §Cosa serve, il meccanismo in `docs/ch/02`.
+- **`sudo` solo nel setup dell'ambiente** (WSL: `scripts/usb-setup.sh`). Mai in build, run, debug, docs.
+- **La pulizia ha tre livelli, nel `Makefile`**: `clean` (build del preset), `distclean` (tutti i
+  build), `clean-all` (anche i download: `ext/`, `.west/`). Niente `rm -rf` sparsi fuori da lì.
+
 ## RTT
 
 Control block unico in OCRAM (`0x204D0000`), un canale per core: 0 m33s, 1 m70, 2 m71. Dettagli in

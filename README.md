@@ -20,22 +20,30 @@ Da VS Code: `Ctrl+Shift+B` compila, `F5` con "M7_0: run + attach" compila, caric
 
 Al primo build vengono scaricati e verificati: toolchain Arm GNU, `uuu`, l'SDK MCUXpresso minimo (west),
 il firmware ELE NXP (ti chiede di accettare la EULA) e `mkimage_imx8`. Tutto finisce in `ext/` (condiviso
-tra i preset, sopravvive a `make distclean`) o in `build/`. Le volte successive si ricostruisce solo
-quello che è cambiato (~15 s, niente download).
+tra i preset; sopravvive a `make clean` e `make distclean`, solo `make clean-all` lo rimuove) o in
+`build/`. Le volte successive si ricostruisce solo quello che è cambiato (~15 s, niente download).
 
 Il `Makefile` è solo una scorciatoia: `make <target> [PRESET=mx94alt]` equivale a
 `cmake --build --preset <PRESET> --target <target>`, dopo aver configurato il preset se serve.
 
 ## Cosa serve
 
-- **Sempre:** `cmake` ≥ 3.25, `make`, `gcc` (per `mkimage_imx8`), `git`, `curl`, `python3`
-  (con `venv`, o `uv`). Toolchain Arm, `uuu`, `west` e SDK li scarica il build (versioni pinnate).
-- **Per `debug`:** J-Link Linux (`JLinkGDBServerCLExe`, provato V9.94).
-- **Per `uart` (monitor SM):** `picocom` (lo installa `make usb-setup`; `screen` come ripiego).
-- **Per `sm-verify`/`sm-update` e `docker-image`:** Docker.
-- **typst** per `docs`: se non è nel PATH viene scaricato (versione pinnata, sha256 verificato).
-- **WSL:** `usbipd-win` su Windows e systemd attivo in WSL; `make usb-setup` fa il resto (dettagli in
-  `scripts/usb-setup.sh`).
+Da un clone pulito serve solo questo sull'host; **tutto il resto lo scarica il build al primo uso**
+(toolchain Arm, `uuu`, `bcu`, SDK via `west`, `mkimage`, ELE, typst), con versioni pinnate e sha256.
+
+- **Sempre:** `cmake` ≥ 3.25, `make`, `gcc` (per `mkimage_imx8`), `git`, `curl`, `python3`, e `uv`
+  oppure il pacchetto `python3-venv` (il venv in `ext/venv` serve a `west` e a `make rtt`).
+- **WSL, una tantum (con `sudo`):** `usbipd-win` su Windows, systemd attivo in WSL e `make usb-setup`
+  (usbip, udev, servizio di attach). La policy per Windows (`usbipd policy add ...`) va data una volta
+  per PC da PowerShell amministratore: lo script stampa i comandi, non è automatizzabile da WSL.
+- **Solo per `debug`/`rtt`:** J-Link Linux (`JLinkGDBServerCLExe`, provato V9.94), proprietario: non è
+  scaricabile dal build.
+- **Solo per `sm-verify`/`sm-update`/`docker-image`:** Docker (opzionale).
+- **`make uart`:** `picocom`, lo installa `make usb-setup` (`screen` come ripiego).
+- **EULA ELE:** il primo `make image` scarica il firmware ELE e l'installer NXP chiede di accettare la
+  EULA; in un ambiente non interattivo: `cmake --preset mx94evk -DACCEPT_ELE_EULA=ON` (equivale a
+  "ho letto e accetto la EULA NXP").
+- **`docs`:** typst viene scaricato se assente (Linux x86_64); su altri host va messo nel `PATH`.
 
 ## Struttura
 
@@ -83,6 +91,8 @@ fw/<app> o M*_BIN  ──┘                                                    
 | `sm-verify` / `sm-update` | ricostruiscono l'SM da sorgenti nel Docker dedicato: confronto con `sm/`, o sovrascrittura |
 | `docs` / `docs-live` | `build/<preset>/docs/safety-island.pdf` con typst; `docs-live` = `typst watch` |
 | `docker-image` | `image` dentro un container (preset `docker`, senza `fw/`, output in `build/docker/`) |
+| `clean` / `distclean` / `clean-all` | pulizia (solo `make`, senza riconfigurare): build del preset corrente / tutti i build / anche `ext/` e `.west/`. Le prime due non richiedono rete |
+| `py-deps` | solo il venv `ext/venv` (west + pylink): dipendenza di `rtt` e `deps` |
 
 ## Firmware (`fw/`)
 
@@ -413,6 +423,8 @@ make debug JLINK_CORE=M7_1     # equivalente a debug-m71 (o -DJLINK_CORE=... in 
   core scelto: fallisce anche l'attach a M33_0. La nota NXP è in `enable_mcu_uarts.md` dei docs del SDK
   ("JTAG cannot be used when LPUART8 is used").
 - Log del GDB server: `build/<preset>/jlink-gdbserver-<core>.log`.
+- I simboli dell'SM per `make debug` (M33_0) sono in `build/<preset>/sm-docker/sm_<config>.elf`, prodotto
+  da `make sm-verify`/`sm-update` (Docker): senza, gdb si attacca senza simboli.
 
 ## SM: binari committati e build riproducibile
 

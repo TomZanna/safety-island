@@ -32,6 +32,32 @@ URL e *sha256*; se il programma è già nel `PATH` si usa quello, altrimenti vie
   stessa `set(...)`, altrimenti il download viene rifiutato.
 ]
 
+== Bootstrap e pulizia
+
+`make` configura da solo (`cmake --preset <preset>`); poi ogni sottoprogetto scarica al primo uso ciò che
+gli serve: toolchain, `uuu`, `bcu` e `typst` via `si_tool()` (`ext/tools/`, sha256), SDK via `west`
+(`ext/sdk/`), `mkimage` come `ExternalProject` (`build/_deps/`), ELE dal sito NXP. La lista dei
+prerequisiti host, dei tool opzionali e delle eccezioni (EULA, J-Link, Docker, USB/WSL) sta nel
+`README.md` ("Cosa serve"); qui c'è il meccanismo.
+
+I target dichiarano le proprie dipendenze: `rtt` porta il venv (`py-deps`), `debug-<app>` la toolchain e
+l'ELF dell'app. In un ambiente pulito non serve nessun comando a mano.
+
+La pulizia ha tre livelli, nel `Makefile` e fuori da CMake (non riconfigurano):
+
+#si-table(
+  columns: (1.3fr, 2.2fr, 2.5fr),
+  header: ([Target], [Rimuove], [Build successivo]),
+  rows: (
+    ([`make clean`], [`build/<preset>/`], [riconfigura, nessun download]),
+    ([`make distclean`], [`build/` (tutti i preset)], [riconfigura, nessun download]),
+    ([`make clean-all`], [`build/`, `ext/`, `.west/`], [riscarica toolchain, SDK, venv, typst]),
+  ),
+)
+
+Dopo `clean-all` il build successivo è la prova del bootstrap da zero. Restano fuori le immagini Docker
+(`safety-island-build`, lo SM) e la cache dei package typst in `~/.cache/typst`: sono dell'utente.
+
 == SDK come dipendenza
 
 `deps/west.yml` pinna quattro repo NXP per commit (SDK core, device i.MX, componenti, CMSIS). `west`

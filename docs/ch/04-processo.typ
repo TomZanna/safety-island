@@ -13,6 +13,9 @@ make run       # reset + uuu + boot (~10 s)
 make rtt       # guarda i log dei tre core (Ctrl-C per uscire)
 ```
 
+Da un clone pulito lo stesso ciclo parte con `make usb-setup` (una volta, con `sudo`) e `make run`:
+`make clean-all && make run` è il test che non serva nessun passaggio manuale.
+
 Se il cambiamento tocca la configurazione dell'SM (memoria, pin, clock) o le patch SM:
 
 ```bash
