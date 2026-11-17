@@ -1,6 +1,10 @@
 /**
  * @file flow_init.h
- * @brief Inizializzazione comune del sottosistema flow, identica per i tre ruoli: identita' del core, piattaforma (DWT, tick) e banner con la geometria della memoria condivisa. L'ordine di inizializzazione di mailbox/ICC e il selftest sono invece specifici del ruolo (fw/safe/safe_main.c, fw/fieldbus/fieldbus_main.c).
+ * @brief Inizializzazione comune del sottosistema flow, identica per i tre
+ * ruoli: identita' del core, piattaforma (DWT, tick) e banner con la geometria
+ * della memoria condivisa. L'ordine di inizializzazione di mailbox/ICC e il
+ * selftest sono invece specifici del ruolo (fw/safe/safe_main.c,
+ * fw/fieldbus/fieldbus_main.c).
  * @ingroup flow
  *
  */

@@ -1,6 +1,9 @@
 /**
  * @file mcux_config.h
- * @brief Sostituto del mcux_config.h che il build west/Kconfig del SDK genera: solo i CONFIG_* letti dai driver e componenti che usiamo (valori uguali a quelli del build SDK di riferimento). Incluso in ogni file con -include (fw/cmake/imx94.cmake).
+ * @brief Sostituto del mcux_config.h che il build west/Kconfig del SDK genera:
+ * solo i CONFIG_* letti dai driver e componenti che usiamo (valori uguali a
+ * quelli del build SDK di riferimento). Incluso in ogni file con -include
+ * (fw/cmake/imx94.cmake).
  * @ingroup flow
  *
  */

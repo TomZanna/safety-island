@@ -12,8 +12,8 @@
  *     causa comune con il watchdog FSoE) e non richiede periferiche dell'SM.
  *   - RNG: solo di banco (DWT + SysTick + ruolo), vedi FLOW_BENCH_RNG. Con
  *     l'opzione a 0 la funzione e' fatale: nel build safety non c'e' ripiego.
- *   - log: una riga per chiamata su rtt_write, cosi' il no-block-skip del canale
- *     RTT o la scrive intera o la scarta (mai righe spezzate).
+ *   - log: una riga per chiamata su rtt_write, cosi' il no-block-skip del
+ * canale RTT o la scrive intera o la scarta (mai righe spezzate).
  *   - trasporto dei cross-check: TODO, arriva con flow_icc.c (M2). Per ora un
  *     post/wait che fallisce chiuso.
  */
@@ -36,169 +36,198 @@ static flow_u32 s_cycles;
 static flow_u32 s_slips;
 static flow_u32 s_rng_state = 0x9E3779B9u;
 static flow_core_id_t s_core;
-static const char *s_role = "?";
+static const char* s_role = "?";
 
-static const char *role_name(flow_core_id_t id)
+static const char* role_name(flow_core_id_t id)
 {
-    switch (id) {
-        case FLOW_CORE_SAFE_A: return "A";   /* m70 */
-        case FLOW_CORE_SAFE_B: return "B";   /* m71 */
-        case FLOW_CORE_FIELDBUS: return "FLD"; /* m33s */
-        default: return "?";
-    }
+  switch (id) {
+    case FLOW_CORE_SAFE_A:
+      return "A"; /* m70 */
+    case FLOW_CORE_SAFE_B:
+      return "B"; /* m71 */
+    case FLOW_CORE_FIELDBUS:
+      return "FLD"; /* m33s */
+    default:
+      return "?";
+  }
 }
 
 void flow_platform_set_core(flow_core_id_t core)
 {
-    if (core >= FLOW_CORE_COUNT) {
-        flow_platform_fatal();
-    }
-    s_core = core;
-    s_role = role_name(core);
+  if (core >= FLOW_CORE_COUNT) {
+    flow_platform_fatal();
+  }
+  s_core = core;
+  s_role = role_name(core);
 }
 
 void flow_platform_init(flow_u32 cycle_ms)
 {
-    /* DWT cycle counter: base di tempo indipendente da SysTick. */
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CYCCNT = 0u;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  /* DWT cycle counter: base di tempo indipendente da SysTick. */
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0u;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
-    s_cycle_ms = cycle_ms;
-    s_tick_ms = board_millis();
-    s_cycles = 0u;
-    s_slips = 0u;
-    s_rng_state ^= DWT->CYCCNT ^ ((flow_u32)s_core << 8);
+  s_cycle_ms = cycle_ms;
+  s_tick_ms = board_millis();
+  s_cycles = 0u;
+  s_slips = 0u;
+  s_rng_state ^= DWT->CYCCNT ^ ((flow_u32)s_core << 8);
 }
 
 bool flow_platform_tick_wait(void)
 {
-    const flow_u32 period = s_cycle_ms;
+  const flow_u32 period = s_cycle_ms;
 
-    for (;;) {
-        const flow_u32 now = board_millis();
-        const flow_u32 elapsed = now - s_tick_ms;
+  for (;;) {
+    const flow_u32 now = board_millis();
+    const flow_u32 elapsed = now - s_tick_ms;
 
-        if (elapsed >= period) {
-            if (elapsed > (2u * period)) {
-                /* Troppo indietro: si riallinea (e si conta), non si accumula. */
-                s_slips++;
-                s_tick_ms = now;
-            } else {
-                s_tick_ms += period;
-            }
-            s_cycles++;
-            return true;
-        }
-
-        __WFI(); /* sveglia il core al prossimo interrupt (SysTick) */
+    if (elapsed >= period) {
+      if (elapsed > (2u * period)) {
+        /* Troppo indietro: si riallinea (e si conta), non si accumula. */
+        s_slips++;
+        s_tick_ms = now;
+      } else {
+        s_tick_ms += period;
+      }
+      s_cycles++;
+      return true;
     }
+
+    __WFI(); /* sveglia il core al prossimo interrupt (SysTick) */
+  }
 }
 
 flow_u32 flow_platform_time_us(void)
 {
-    const flow_u32 cycles_per_us = (flow_u32)(SystemCoreClock / 1000000u);
+  const flow_u32 cycles_per_us = (flow_u32)(SystemCoreClock / 1000000u);
 
-    return (flow_u32)((uint64_t)DWT->CYCCNT / (uint64_t)((cycles_per_us != 0u) ? cycles_per_us : 1u));
+  return (flow_u32)((uint64_t)DWT->CYCCNT
+                    / (uint64_t)((cycles_per_us != 0u) ? cycles_per_us : 1u));
 }
 
 flow_u16 flow_platform_random_u16(void)
 {
 #if FLOW_BENCH_RNG
-    /* Banco, non safety: DWT + SysTick + stato precedente. Serve solo a dare ai
-     * due master due numeri diversi (il Session ID e' la loro somma). */
-    flow_u32 x = s_rng_state;
+  /* Banco, non safety: DWT + SysTick + stato precedente. Serve solo a dare ai
+   * due master due numeri diversi (il Session ID e' la loro somma). */
+  flow_u32 x = s_rng_state;
 
-    x ^= DWT->CYCCNT + 0x9E3779B9u + (x << 6) + (x >> 2);
-    x ^= board_millis() * 2654435761u;
-    if (x == 0u) {
-        x = 0xA5A50001u;
-    }
-    s_rng_state = x;
+  x ^= DWT->CYCCNT + 0x9E3779B9u + (x << 6) + (x >> 2);
+  x ^= board_millis() * 2654435761u;
+  if (x == 0u) {
+    x = 0xA5A50001u;
+  }
+  s_rng_state = x;
 
-    return (flow_u16)(x ^ (x >> 16));
+  return (flow_u16)(x ^ (x >> 16));
 #else
-    flow_platform_fatal(); /* nessun ripiego pseudo-casuale nel build safety */
+  flow_platform_fatal(); /* nessun ripiego pseudo-casuale nel build safety */
 #endif
 }
 
 void flow_platform_fatal(void)
 {
-    flow_platform_log(s_role, "FATAL, uscite in stato sicuro");
-    board_fault(0xF10Fu, 0);
+  flow_platform_log(s_role, "FATAL, uscite in stato sicuro");
+  board_fault(0xF10Fu, 0);
 }
 
-void flow_platform_log(const char *tag, const char *format, ...)
+void flow_platform_log(const char* tag, const char* format, ...)
 {
-    char line[200];
-    int prefix;
-    int body;
-    size_t length;
-    va_list ap;
+  char line[200];
+  int prefix;
+  int body;
+  size_t length;
+  va_list ap;
 
-    prefix = snprintf(line, sizeof(line), "[%s] ", (tag != NULL) ? tag : "?");
-    if (prefix < 0) {
-        return;
-    }
-    if ((size_t)prefix >= sizeof(line)) {
-        prefix = (int)sizeof(line) - 1;
-    }
+  prefix = snprintf(line, sizeof(line), "[%s] ", (tag != NULL) ? tag : "?");
+  if (prefix < 0) {
+    return;
+  }
+  if ((size_t)prefix >= sizeof(line)) {
+    prefix = (int)sizeof(line) - 1;
+  }
 
-    va_start(ap, format);
-    body = vsnprintf(&line[prefix], sizeof(line) - (size_t)prefix, format, ap);
-    va_end(ap);
-    if (body <= 0) {
-        return;
-    }
+  va_start(ap, format);
+  body = vsnprintf(&line[prefix], sizeof(line) - (size_t)prefix, format, ap);
+  va_end(ap);
+  if (body <= 0) {
+    return;
+  }
 
-    length = (size_t)prefix + ((size_t)body < (sizeof(line) - (size_t)prefix) ? (size_t)body : (sizeof(line) - (size_t)prefix - 1u));
-    if (length < (sizeof(line) - 1u)) {
-        line[length++] = '\n';
-    }
+  length = (size_t)prefix
+      + ((size_t)body < (sizeof(line) - (size_t)prefix)
+             ? (size_t)body
+             : (sizeof(line) - (size_t)prefix - 1u));
+  if (length < (sizeof(line) - 1u)) {
+    line[length++] = '\n';
+  }
 
-    rtt_write(line, length);
+  rtt_write(line, length);
 }
 
-bool flow_platform_mu_post(flow_core_id_t self, flow_u8 channel, flow_u8 tag, flow_u32 cycle, const void *message,
-    flow_u32 size)
+bool flow_platform_mu_post(flow_core_id_t self,
+                           flow_u8 channel,
+                           flow_u8 tag,
+                           flow_u32 cycle,
+                           const void* message,
+                           flow_u32 size)
 {
-    const flow_core_id_t peer = (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
+  const flow_core_id_t peer =
+      (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
 
-    /* Il ciclo lo passa chi manda: lo slot e il messaggio portano lo stesso numero,
-     * senza dipendere da quando la barrier avanza. */
-    return flow_icc_post(self, peer, channel, tag, cycle, message, (flow_u16)size);
+  /* Il ciclo lo passa chi manda: lo slot e il messaggio portano lo stesso
+   * numero, senza dipendere da quando la barrier avanza. */
+  return flow_icc_post(
+      self, peer, channel, tag, cycle, message, (flow_u16)size);
 }
 
-bool flow_platform_mu_wait(flow_core_id_t self, flow_u8 channel, flow_u8 tag, flow_u32 cycle, void *message,
-    flow_u32 max_size, flow_u32 timeout_us)
+bool flow_platform_mu_wait(flow_core_id_t self,
+                           flow_u8 channel,
+                           flow_u8 tag,
+                           flow_u32 cycle,
+                           void* message,
+                           flow_u32 max_size,
+                           flow_u32 timeout_us)
 {
-    const flow_core_id_t peer = (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
-    flow_u16 length = 0u;
+  const flow_core_id_t peer =
+      (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
+  flow_u16 length = 0u;
 
-    if (!flow_icc_wait(self, peer, channel, tag, cycle, message, (flow_u16)max_size, &length, timeout_us)) {
-        return false;
-    }
+  if (!flow_icc_wait(self,
+                     peer,
+                     channel,
+                     tag,
+                     cycle,
+                     message,
+                     (flow_u16)max_size,
+                     &length,
+                     timeout_us))
+  {
+    return false;
+  }
 
-    /* Se il payload e' piu' corto del buffer, azzera il resto: chi valida il
-     * messaggio deve vedere zeri e non spazzatura di stack. */
-    if (length < (flow_u16)max_size) {
-        flow_memset((flow_u8 *)message + length, 0, max_size - (flow_u32)length);
-    }
+  /* Se il payload e' piu' corto del buffer, azzera il resto: chi valida il
+   * messaggio deve vedere zeri e non spazzatura di stack. */
+  if (length < (flow_u16)max_size) {
+    flow_memset((flow_u8*)message + length, 0, max_size - (flow_u32)length);
+  }
 
-    return true;
+  return true;
 }
 
 void flow_platform_watchdog_kick(void)
 {
-    /* WDOG5/WDOG6 non sono abilitati: quando lo saranno va servito qui. */
+  /* WDOG5/WDOG6 non sono abilitati: quando lo saranno va servito qui. */
 }
 
 flow_u32 flow_platform_cycles(void)
 {
-    return s_cycles;
+  return s_cycles;
 }
 
 flow_u32 flow_platform_tick_slips(void)
 {
-    return s_slips;
+  return s_slips;
 }

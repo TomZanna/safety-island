@@ -17,11 +17,11 @@
 
 /** Un'asserzione violata dallo stack e' una condizione fatale di sicurezza: le
  * uscite sono gia' a 0 dal chiamante, ci si ferma (breakpoint/watchdog). */
-#define FSOEPORT_ASSERT(exp)  \
-    do {                      \
-        if (!(exp)) {         \
-            flow_platform_fatal(); \
-        }                     \
-    } while (0)
+#define FSOEPORT_ASSERT(exp) \
+  do { \
+    if (!(exp)) { \
+      flow_platform_fatal(); \
+    } \
+  } while (0)
 
 #endif /* FSOEPORT_MACROS_H */

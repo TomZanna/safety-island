@@ -1,6 +1,7 @@
 /**
  * @file flow_config.h
- * @brief Configurazione del virtual safe PLC: taglie, indirizzi e tempi, in un posto solo (niente magic number sparsi).
+ * @brief Configurazione del virtual safe PLC: taglie, indirizzi e tempi, in un
+ * posto solo (niente magic number sparsi).
  * @ingroup flow_config
  *
  * Non c'e' un "ruolo di compilazione": il ruolo lo sceglie il main.c dell'app
@@ -8,7 +9,8 @@
  * (fw/safe/ oppure fw/fieldbus/).
  *
  * Portato da imx-flow/bare-metal/include/flow_config.h, con:
- *   - indirizzi della mailbox presi dall'OCRAM condivisa (patch SM 0002), non dalla DDR;
+ *   - indirizzi della mailbox presi dall'OCRAM condivisa (patch SM 0002), non
+ * dalla DDR;
  *   - ruoli SAFE_A/SAFE_B/FIELDBUS al posto di M7/M33;
  *   - sorgenti di tempo e RNG del target i.MX94 (flow_platform_imx94.c).
  */
@@ -19,14 +21,16 @@
 
 /** Numero di connessioni FSoE indipendenti gestite da ogni master. */
 #ifndef FLOW_NUM_CONNECTIONS
-#define FLOW_NUM_CONNECTIONS 1u
+#  define FLOW_NUM_CONNECTIONS 1u
 #endif
 
 /** Process data di sicurezza in byte (pari, oppure 1). */
 #define FLOW_SAFE_DATA_SIZE 4u
 
-/** Dimensione della PDU FSoE, ETG.5100 ch. 8.1.1: 11 byte con 4 byte di dati. */
-#define FLOW_FSOE_PDU_SIZE(data_size) (((data_size) == 1u) ? 6u : (2u * (data_size) + 3u))
+/** Dimensione della PDU FSoE, ETG.5100 ch. 8.1.1: 11 byte con 4 byte di dati.
+ */
+#define FLOW_FSOE_PDU_SIZE(data_size) \
+  (((data_size) == 1u) ? 6u : (2u * (data_size) + 3u))
 #define FLOW_PDU_MAX FLOW_FSOE_PDU_SIZE(FLOW_SAFE_DATA_SIZE)
 #define FLOW_PDU_MIN 6u
 
@@ -40,8 +44,8 @@
 #define FLOW_APP_PARAMETER_1 0x1234u
 #define FLOW_APP_PARAMETER_2 0x5678u
 
-/** Mailbox: 3 banchi. Il banco scelto da MIN(count_A, count_B) non e' mai quello
- * che un core sta scrivendo, neanche con un core uno o due pubblicazioni
+/** Mailbox: 3 banchi. Il banco scelto da MIN(count_A, count_B) non e' mai
+ * quello che un core sta scrivendo, neanche con un core uno o due pubblicazioni
  * indietro. */
 #define FLOW_SHM_BANKS 3u
 
@@ -57,23 +61,24 @@
 #define FLOW_SHM_VERSION 2u
 #define FLOW_SHM_LAYOUT_HASH 0x00000002u
 
-/** Tempo. Il tick dei core safe viene da SysTick (board_millis); il tempo per il
- * watchdog FSoE da DWT->CYCCNT, per non avere una causa comune con il tick. */
+/** Tempo. Il tick dei core safe viene da SysTick (board_millis); il tempo per
+ * il watchdog FSoE da DWT->CYCCNT, per non avere una causa comune con il tick.
+ */
 #define FLOW_SAFE_CYCLE_MS 10u
 #define FLOW_FIELD_CYCLE_MS 2u
 
 /** Attesa massima del peer prima di dichiarare fallito il cross-check (bounded,
  * mai un loop infinito: si va in fail-safe). */
 #ifndef FLOW_MU_TIMEOUT_US
-#define FLOW_MU_TIMEOUT_US 5000u
+#  define FLOW_MU_TIMEOUT_US 5000u
 #endif
 /** Attesa massima al rendezvous di ciclo (a 3: SAFE_A, SAFE_B, FIELDBUS). Il
- * ciclo lo apre il fieldbus dopo che i due core safe hanno finito: l'attesa puo'
- * essere quasi un periodo safe intero piu' il tempo che il fieldbus passa ad
- * aspettare l'altro core (15 ms). Margine: 3 periodi, sempre sotto il watchdog
- * FSoE (100 ms). */
+ * ciclo lo apre il fieldbus dopo che i due core safe hanno finito: l'attesa
+ * puo' essere quasi un periodo safe intero piu' il tempo che il fieldbus passa
+ * ad aspettare l'altro core (15 ms). Margine: 3 periodi, sempre sotto il
+ * watchdog FSoE (100 ms). */
 #ifndef FLOW_BARRIER_TIMEOUT_US
-#define FLOW_BARRIER_TIMEOUT_US 30000u
+#  define FLOW_BARRIER_TIMEOUT_US 30000u
 #endif
 
 /** Logica safe. */
@@ -90,24 +95,26 @@
 
 /** Debug: con 0 il codice di log e il fault injection non vengono linkati. */
 #ifndef FLOW_DEBUG
-#define FLOW_DEBUG 1
+#  define FLOW_DEBUG 1
 #endif
 
 /** Log per ciclo: a 10 ms sarebbero 100 righe/s per core e il buffer RTT (4 KB,
- * no-block-skip) le perde. Di default solo eventi (stati, anomalie, statistiche). */
+ * no-block-skip) le perde. Di default solo eventi (stati, anomalie,
+ * statistiche). */
 #ifndef FLOW_LOG_VERBOSE
-#define FLOW_LOG_VERBOSE 0
+#  define FLOW_LOG_VERBOSE 0
 #endif
 
 /** RNG di banco per il Session ID (DWT + SysTick + core id). NON e' un TRNG:
  * con l'opzione a 0 flow_platform_random_u16() e' fatale (fail-safe). */
 #ifndef FLOW_BENCH_RNG
-#define FLOW_BENCH_RNG 1
+#  define FLOW_BENCH_RNG 1
 #endif
 
-/** Build freestanding: false per le app, che linkano newlib-nano (memcpy ecc.). */
+/** Build freestanding: false per le app, che linkano newlib-nano (memcpy ecc.).
+ */
 #ifndef FLOW_FREESTANDING
-#define FLOW_FREESTANDING 0
+#  define FLOW_FREESTANDING 0
 #endif
 
 /** Ruolo che pubblica la meta' CRC del frame: lo definisce flow_shm_api.h

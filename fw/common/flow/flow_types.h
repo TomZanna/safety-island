@@ -27,10 +27,12 @@ typedef int32_t flow_s32;
 #define FLOW_UNUSED __attribute__((unused))
 #define FLOW_INLINE static inline
 
-#define FLOW_STATIC_ASSERT(condition, message) _Static_assert(condition, message)
+#define FLOW_STATIC_ASSERT(condition, message) \
+  _Static_assert(condition, message)
 
-/** Ruoli: uno per core secondario. Il ruolo e' una proprieta' dell'app (lo passa
- * il main.c al punto di ingresso del ruolo), non una macro che seleziona codice.
+/** Ruoli: uno per core secondario. Il ruolo e' una proprieta' dell'app (lo
+ * passa il main.c al punto di ingresso del ruolo), non una macro che seleziona
+ * codice.
  *
  *   SAFE_A (m70, M7_0)  master FSoE #1: pubblica la meta' CRC del frame
  *   SAFE_B (m71, M7_1)  master FSoE #2: pubblica la meta' dati del frame
@@ -42,19 +44,23 @@ typedef int32_t flow_s32;
 #define FLOW_CORE_FIELDBUS 2u
 
 #define FLOW_CORE_COUNT 3u /**< ruoli totali (heartbeat nella mailbox) */
-#define FLOW_SAFE_CORE_COUNT 2u /**< core che pubblicano una meta' del frame */
+#define FLOW_SAFE_CORE_COUNT 2u /**< core che pubblicano una meta' */
 
 typedef flow_u8 flow_core_id_t;
 
 /** Tag breve dei log RTT: "m70/A", "m71/B", "m33s/fld". */
-FLOW_INLINE const char *flow_role_log_tag(flow_core_id_t role)
+FLOW_INLINE const char* flow_role_log_tag(flow_core_id_t role)
 {
-    switch (role) {
-        case FLOW_CORE_SAFE_A: return "m70/A";
-        case FLOW_CORE_SAFE_B: return "m71/B";
-        case FLOW_CORE_FIELDBUS: return "m33s/fld";
-        default: return "?";
-    }
+  switch (role) {
+    case FLOW_CORE_SAFE_A:
+      return "m70/A";
+    case FLOW_CORE_SAFE_B:
+      return "m71/B";
+    case FLOW_CORE_FIELDBUS:
+      return "m33s/fld";
+    default:
+      return "?";
+  }
 }
 
 #endif /* SI_FLOW_TYPES_H */

@@ -21,6 +21,6 @@
 bool flow_selftest_run(flow_core_id_t self);
 
 /** Logga PASS/FAIL di una prova: la usano anche i selftest di ruolo. */
-void flow_selftest_check(const char *name, bool ok);
+void flow_selftest_check(const char* name, bool ok);
 
 #endif /* SI_FLOW_SELFTEST_H */

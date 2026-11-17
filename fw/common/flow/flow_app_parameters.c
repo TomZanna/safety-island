@@ -1,6 +1,9 @@
 /**
  * @file flow_app_parameters.c
- * @brief Parametri applicativi della connessione FSoE (i 2 x uint16 dello stato Parameter). Sono uguali per tutti i ruoli: li verifica sia il master sia lo slave (fsoeapp_verify_parameters), quindi vivono fuori da fw/safe e fw/fieldbus.
+ * @brief Parametri applicativi della connessione FSoE (i 2 x uint16 dello stato
+ * Parameter). Sono uguali per tutti i ruoli: li verifica sia il master sia lo
+ * slave (fsoeapp_verify_parameters), quindi vivono fuori da fw/safe e
+ * fw/fieldbus.
  * @ingroup flow
  *
  */
@@ -8,24 +11,26 @@
 
 #include <fsoeapp.h>
 
-flow_u8 flow_app_parameters_verify(flow_u16 timeout_ms, const void *parameters, size_t size)
+flow_u8 flow_app_parameters_verify(flow_u16 timeout_ms,
+                                   const void* parameters,
+                                   size_t size)
 {
-    const flow_u8 *bytes = (const flow_u8 *)parameters;
-    flow_u16 param1;
-    flow_u16 param2;
+  const flow_u8* bytes = (const flow_u8*)parameters;
+  flow_u16 param1;
+  flow_u16 param2;
 
-    (void)timeout_ms;
+  (void)timeout_ms;
 
-    if ((bytes == NULL) || (size != FLOW_APP_PARAMETERS_SIZE)) {
-        return FSOEAPP_STATUS_BAD_APP_PARAMETER;
-    }
+  if ((bytes == NULL) || (size != FLOW_APP_PARAMETERS_SIZE)) {
+    return FSOEAPP_STATUS_BAD_APP_PARAMETER;
+  }
 
-    param1 = (flow_u16)(((flow_u16)bytes[1] << 8u) | bytes[0]);
-    param2 = (flow_u16)(((flow_u16)bytes[3] << 8u) | bytes[2]);
+  param1 = (flow_u16)(((flow_u16)bytes[1] << 8u) | bytes[0]);
+  param2 = (flow_u16)(((flow_u16)bytes[3] << 8u) | bytes[2]);
 
-    if ((param1 != FLOW_APP_PARAMETER_1) || (param2 != FLOW_APP_PARAMETER_2)) {
-        return FSOEAPP_STATUS_BAD_APP_PARAMETER;
-    }
+  if ((param1 != FLOW_APP_PARAMETER_1) || (param2 != FLOW_APP_PARAMETER_2)) {
+    return FSOEAPP_STATUS_BAD_APP_PARAMETER;
+  }
 
-    return FSOEAPP_STATUS_OK;
+  return FSOEAPP_STATUS_OK;
 }
