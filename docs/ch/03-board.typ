@@ -2,8 +2,9 @@
 = Come si parla con la board
 
 Ci sono cinque canali indipendenti, e ognuno ha le sue trappole. In WSL i dispositivi USB arrivano con il
-client `usbip` dal server `usbipd-win`: il servizio `safety-island-usb` li attacca per VID:PID e li
-ri-attacca quando ricompaiono (`make usb-status` per lo stato).
+client `usbip` dal server `usbipd-win`: `make usb-setup` (una tantum) prepara usbip/udev e il servizio
+`safety-island-usb`, che li attacca per VID:PID e li ri-attacca (`make usb-status` per lo stato; dettagli
+in `scripts/usb-setup.sh`).
 
 #si-table(
   columns: (1.3fr, 2.2fr, 2.6fr, 2.4fr),

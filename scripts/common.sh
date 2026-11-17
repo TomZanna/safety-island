@@ -18,5 +18,3 @@ mkdir -p "$DEPS"
 die()  { echo "ERRORE: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
-is_wsl() { grep -qi microsoft /proc/version 2>/dev/null; }
-

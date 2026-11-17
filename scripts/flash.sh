@@ -1,23 +1,14 @@
 #!/usr/bin/env bash
 # Carica build/flash.bin IN RAM con uuu (SDPS boot): nessuna scrittura su SD/eMMC.
 # uuu Linux nativo (UUU, scaricato dal target CMake): in WSL la ROM della board (1fc9:0027) deve essere
-# attaccata con usbip (servizio safety-island-usb, 'make usb-setup'). UUU=uuu.exe usa invece uuu Windows.
+# attaccata con usbip (servizio safety-island-usb, 'make usb-setup').
 source "$(dirname "$0")/common.sh"
 img="${1:-$BUILD/flash.bin}"
 [ -f "$img" ] || die "$img non esiste: esegui prima 'make image'"
 UUU="${UUU:-$(command -v uuu || true)}"
 [ -n "$UUU" ] || die "uuu non trovato (imposta UUU=...)"
 
-if [[ "$UUU" == *.exe ]]; then
-    # uuu.exe legge solo percorsi Windows "normali": copia in %TEMP%
-    wintmp="$(cd /mnt/c && cmd.exe /c 'echo %TEMP%' 2>/dev/null | tr -d '\r')"
-    tmpdir="$(wslpath -u "$wintmp")"
-    cp "$img" "$tmpdir/safety-island-flash.bin"
-    uuu_img="$wintmp\\safety-island-flash.bin"
-    cd /mnt/c   # uuu.exe da una cwd UNC (\\wsl$) si lamenta
-else
-    uuu_img="$img"
-fi
+uuu_img="$img"
 
 sdp_present() { "$UUU" -lsusb 2>&1 | grep -q 'MX943'; }
 

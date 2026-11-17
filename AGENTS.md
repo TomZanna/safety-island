@@ -3,23 +3,27 @@
 Contesto: i.MX94 EVK, silicio **A0**, sviluppo da **WSL**. Leggi prima `README.md`.
 
 ## Ambiente e USB
-- I dispositivi USB arrivano in WSL con il client Linux `usbip` dal server usbipd-win (niente `.exe`):
-  servizio systemd `safety-island-usb` (`scripts/usb-attach.sh`), che li attacca per VID:PID
-  (`board/usb-devices.conf`) e li ri-attacca quando ricompaiono. Stato: `make usb-status`.
-- Se un dispositivo sparisce da WSL (es. il J-Link dopo un GDB server ucciso a metà) senza il servizio
-  attivo, va ri-attaccato; col servizio torna da solo in ~1 s.
+- Tutto gira in WSL: USB via usbip (server usbipd-win) e servizio `safety-island-usb`
+  (`scripts/usb-attach.sh`), che attacca i VID:PID di `board/usb-devices.conf`. Setup:
+  `make usb-setup`; stato: `make usb-status`; dettagli in `scripts/usb-*.sh`.
 - `uuu` è quello Linux pinnato (`ext/tools/uuu-*`); la ROM SDP (`1fc9:0027`) deve essere in WSL.
-  `-DUUU=uuu.exe` solo come ripiego.
-- Reset: `scripts/reset.sh`, default hardware via pin nRESET del J-Link (`JLinkExe` `r0`/`r1`, nessun
-  core coinvolto): non dipende dall'SM. Il monitor SM (`reset`) è solo l'ultima risorsa. BCU è l'alternativa
-  hardware (profilo `imx943evk19b1`, SW7-1 OFF: con SW7-1 sbagliato `get gpio failed`): non passa dalla
-  boot ROM, comanda reset e pin BOOT_MODE via expander, quindi recupera anche un boot media con
-  immagine valida ma bloccata. `make run` ci ripiega se dopo il reset J-Link la ROM non compare.
-- `uuu -b sd/emmc` passa per ROM `1fc9:0027`, SPL `1fc9:0151`, fastboot `1fc9:0152`: tutti devono essere in
-  `board/usb-devices.conf` (e condivisi su Windows), altrimenti uuu aspetta all'infinito.
-- Seriali sempre per `/dev/serial/by-id/` (l'ordine dei `ttyUSBn` cambia). Monitor SM: FTDI quad `if03`
-  (LPUART2): `reset` riporta la board in SDP, `cpu.r` mostra lo stato dei core. Se il monitor non
-  risponde, la board è quasi certamente tornata in SDP: `make run`.
+- Seriali sempre per `/dev/serial/by-id/`; monitor SM sulla FTDI `if03` (LPUART2).
+- Reset: `scripts/reset.sh` (jlink → bcu → monitor); dettagli nell'intestazione dello script.
+
+## Script e tool
+- **Fail fast:** niente retry o attese "di precauzione". Se un comando può fallire, esce subito con un
+  errore che dice cosa fare (chiudere una sessione, rilanciare, ...). Retry e attese solo se necessari e
+  verificati; il motivo va nel commento dello script.
+- **Niente chiusure automatiche** di processi/sessioni non propri. Le eccezioni esplicite (es. `make run`
+  chiude le console `make rtt`) restano limitate a ciò che il comando controlla.
+- I wait solo dove servono (readiness di un server, enumerazione USB) e con un timeout.
+
+## RTT
+- Control block unico in OCRAM (`0x204D0000`), un canale per core: 0 m33s, 1 m70, 2 m71. Una sola
+  connessione J-Link legge tutti i canali; in debug Cortex-Debug usa il `rttConfig` con un canale per
+  sessione. Dettagli in `fw/common/rtt_shared.[ch]` e `scripts/rtt.py`.
+- Due lettori sullo stesso canale si rubano i dati. Ogni `make rtt` è una connessione; la sonda ne
+  accetta 5 in totale. L'hub TCP (19100-19102) è stato rimosso: non reintrodurlo.
 
 ## Firmware e dipendenze
 - App in `fw/<app>/` (m33s, m70, m71), codice comune in `fw/common/`. Build: ExternalProject per app
@@ -38,23 +42,7 @@ Contesto: i.MX94 EVK, silicio **A0**, sviluppo da **WSL**. Leggi prima `README.m
 - `flash.bin` non inizializza la DDR: niente codice/dati in DDR sui core secondari. Il SDK azzera la
   resource table RPMsg (in DDR per gli M7) in `SystemInit()`: il nostro `tcm.ld.in` la disattiva con
   `__RscTblShareWithMpuStart > __RscTblShareWithMpuEnd`.
-- Log/input delle app: RTT con **un control block condiviso** in OCRAM (`0x204D0000`, patch SM) e un
-  canale per core (0 m33s, 1 m70, 2 m71), `fw/common/rtt_shared.c` (non `SEGGER_RTT.c`: la sua init
-  cancella i canali degli altri core). Motivo: il motore RTT del J-Link è uno per sonda (verificato: con
-  un control block per core, più sessioni leggevano tutte quello del primo core). Lettura con
-  `scripts/rtt.py` (pylink): più processi su canali diversi ok, due sullo stesso canale si rubano i
-  dati. Cortex-Debug `rttConfig` è usato: **un canale per sessione** (`port` 0/1/2 in `launch.json`).
-- **J-Link: max 5 connessioni contemporanee.** Ogni GDB server e ogni console `make rtt` è una
-  connessione (in debug l'RTT passa dal `rttConfig`, senza aggiungerne): con 3 GDB server restano 2
-  slot. Un GDB server per core (il server è single-core; la sonda è condivisa a livello di link).
-  L'hub TCP (19100-19102) è stato rimosso: non reintrodurlo.
-- `rtt.py` non riprova: se la sonda è occupata o le connessioni sono esaurite stampa un errore e
-  termina. `make run` chiude le console `make rtt` prima del reset e, se il caricamento fallisce,
-  ricorda di chiudere eventuali altre sessioni J-Link. I compound sfasano gli attach di 0,5/1 s
-  (`Attendi …`): se gdb parte insieme, la corsa d'avvio fa fallire l'attach. Un GDB server che si
-  collega ferma il core finché gdb non lo fa ripartire. `g_debugger_go` deve restare nell'ELF
-  (riferita in `SystemInitHook`): se gdb non la trova, il `postAttachCommands` fallisce e l'attach di
-  Cortex-Debug si blocca. Le app non usano periferiche.
+- Le app non usano periferiche: niente UART/pin/clock da chiedere all'SM.
 - Con l'SM, pin mux e clock passano da SCMI. Il `fsl_iomuxc.h` del SDK, se l'SM rifiuta, resta in
   `while (result != SCMI_ERR_SUCCESS);`: se servono periferiche, chiamare `SCMI_PinctrlSettingsConfigure`
   con gestione dell'errore (vedi README "Console seriali", codice nella history git).
@@ -103,6 +91,8 @@ Regole che non si possono sbagliare. Il perché sta in `docs/` (`make docs`).
   solo attach: l'app va caricata prima con `make run`.
 - `DHCSR.C_DEBUGEN` resta a 1 dopo una sessione di debug anche attraverso il reset della board: non usarlo
   per capire se c'è un debugger. `WAIT_DEBUGGER` aspetta `g_debugger_go` (in `SystemInitHook`).
+- `g_debugger_go` deve restare nell'ELF (riferita in `SystemInitHook`): se gdb non la trova, il
+  `postAttachCommands` fallisce e l'attach di Cortex-Debug si blocca.
 - Prima di dare la colpa ai permessi dell'SM (TRDC): il DAP ha DID 9 con accesso ovunque (`DEBUG did=9` in
   `devices/MIMX94/configtool/device.cfg` di imx-sm); il problema visto finora era sempre il pin mux.
 - `make debug` è un core alla volta (una sola porta GDB); il compound di VS Code apre 3 sessioni, ognuna

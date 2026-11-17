@@ -63,6 +63,6 @@ safety-island/
     ([`scripts/uart.sh`], [console seriale del monitor SM (`picocom`)]),
     ([`scripts/rtt.py`], [lettura/scrittura RTT via `pylink`, una connessione per terminale (errore se la sonda è occupata)]),
     ([`scripts/debug.sh`], [GDB server + gdb su un core, `GDB_BATCH=1` per l'attach non interattivo]),
-    ([`scripts/usb-attach.sh`], [servizio `safety-island-usb`: attacca/riattacca i dispositivi via usbip]),
+    ([`scripts/usb-*.sh`], [USB/IP in WSL: setup (`usb-setup`), attach (`usb-attach`), stato (`usb-status`)]),
   ),
 )

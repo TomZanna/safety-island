@@ -8,7 +8,7 @@ L'immagine viene caricata **in RAM** con `uuu` (SDP): non scrive su SD/eMMC, e s
 ## Avvio rapido
 
 ```bash
-make usb-setup  # solo la prima volta su un PC (WSL): usbip, regola udev uuu, servizio di attach (sudo)
+make usb-setup  # setup WSL (sudo): usbip, udev, servizio di attach; stampa le policy Windows
 make run        # build (toolchain, SDK, app, flash.bin) + caricamento in RAM con uuu
 make rtt        # log di tutti i core via RTT (rtt-m70/-m71/-m33s: un core, con input; "make uart" = monitor SM)
 make debug-m70  # gdb su M7_0 (anche debug-m71, debug-m33s; "make debug" = M33_0/SM)
@@ -34,8 +34,8 @@ Il `Makefile` è solo una scorciatoia: `make <target> [PRESET=mx94alt]` equivale
 - **Per `uart` (monitor SM):** `picocom` (lo installa `make usb-setup`; `screen` come ripiego).
 - **Per `sm-verify`/`sm-update` e `docker-image`:** Docker.
 - **typst** per `docs`: se non è nel PATH viene scaricato (versione pinnata, sha256 verificato).
-- **WSL:** usbipd-win su Windows (con le policy della sezione [USB in WSL](#usb-in-wsl)) e systemd attivo
-  in WSL (`[boot] systemd=true` in `/etc/wsl.conf`).
+- **WSL:** `usbipd-win` su Windows e systemd attivo in WSL; `make usb-setup` fa il resto (dettagli in
+  `scripts/usb-setup.sh`).
 
 ## Struttura
 
@@ -260,40 +260,17 @@ per tutti). Non bloccante: se nessuno legge e il buffer è pieno, il messaggio s
 
 ## USB in WSL
 
-Board, J-Link e seriali arrivano in WSL via USB/IP: il servizio usbipd-win su Windows fa da server, e da
-WSL si usa il client Linux `usbip`. **Nessun `.exe` nel flusso** (`uuu` è quello Linux).
+Board, J-Link e seriali arrivano in WSL via USB/IP: server `usbipd-win` su Windows, client Linux `usbip`
+in WSL. Una tantum:
 
-**Una volta per PC Windows (PowerShell da amministratore):** condividi automaticamente i dispositivi su
-qualunque porta USB, per hardware-id. Le policy restano salvate in usbipd-win.
+- **Windows** (PowerShell da amministratore): policy AutoBind per i VID:PID di `board/usb-devices.conf`;
+  i comandi esatti li stampa `make usb-setup`.
+- **WSL**: `make usb-setup` (sudo) installa usbip/libusb/udev e il servizio `safety-island-usb`, che
+  attacca da solo i dispositivi (anche la ROM SDP a ogni reset).
 
-```powershell
-usbipd policy add --effect Allow --operation AutoBind --hardware-id 1366:1020   # J-Link
-usbipd policy add --effect Allow --operation AutoBind --hardware-id 0403:6011   # FTDI quad della EVK (J15)
-usbipd policy add --effect Allow --operation AutoBind --hardware-id 1fc9:0027   # ROM i.MX94 in serial download
-usbipd policy add --effect Allow --operation AutoBind --hardware-id 1fc9:0151   # SPL in serial download (uuu -b sd/emmc)
-usbipd policy add --effect Allow --operation AutoBind --hardware-id 1fc9:0152   # U-Boot fastboot (uuu -b sd/emmc)
-usbipd policy list
-```
-
-**Una volta per installazione WSL:** `make usb-setup` (chiede la password di sudo). Fa:
-1. installa il client `usbip` (`linux-tools-virtual`, `hwdata`) e lo collega a `/usr/local/bin/usbip`, e
-   `libusb-1.0-0` (serve a uuu);
-2. installa `libftdi1-2` (per `bcu`) e le regole udev: quella di uuu (`70-uuu.rules`) e una nostra che
-   dà al gruppo `plugdev` i dispositivi NXP (`1fc9:*`) e l'FTDI quad della EVK (per `bcu`)
-   (`71-safety-island-nxp.rules`): quella di uuu usa `uaccess`, che in WSL non funziona (non c'è una
-   sessione "seat");
-3. installa e avvia il servizio systemd `safety-island-usb`, che parte con WSL e ogni secondo attacca i
-   dispositivi di `board/usb-devices.conf` che il server esporta e WSL non ha ancora. I dispositivi si
-   riconoscono per hardware-id (VID:PID), quindi cambiare porta non conta. La ROM SDP, che sparisce
-   dopo `SDPS: boot` e ricompare a ogni reset della board, viene ri-attaccata da sola (~2 s; un
-   dispositivo staccato a forza torna in ~4 s, il tempo che usbipd-win lo liberi).
-
-Poi: `make usb-status` (servizio, dispositivi attaccati, seriali, board in SDP) e
-`journalctl -u safety-island-usb -f` per il log. Se la rete di WSL è `mirrored` il server è `127.0.0.1`
-(rilevato da `.wslconfig`); altrimenti il gateway di default. `USBIP_HOST` lo forza.
-
-Le seriali si usano per **by-id** (`/dev/serial/by-id/...`), non come `ttyUSBn`: l'ordine di attach può
-cambiare. `uuu.exe` resta usabile come ripiego con `-DUUU=uuu.exe` (serve la ROM lato Windows).
+Stato: `make usb-status`; log: `journalctl -u safety-island-usb -f`. Seriali sempre per
+`/dev/serial/by-id/`. Dettagli e variabili (`USBIP_HOST`, `USB_POLL`): intestazioni di
+`scripts/usb-setup.sh` e `scripts/usb-attach.sh`.
 
 ## Reset
 
@@ -354,7 +331,6 @@ cmake --preset mx94evk -DM70_WAIT_DEBUGGER=ON -DRESET_METHOD=bcu
 | `M33S_BIN`, `M70_BIN`, `M71_BIN` | vuoto | binari esterni per i core: hanno la precedenza sulle app di `fw/` |
 | `ARMGCC_DIR` | vuoto | toolchain già installata invece di quella scaricata |
 | `SM_UART` | `/dev/serial/by-id/usb-FTDI_Quad_RS232-HS-if03-port0` | monitor dell'SM (LPUART2) |
-| `UUU` | vuoto | vuoto = uuu Linux scaricato; `uuu.exe` = ripiego Windows |
 | `RESET_METHOD`, `BCU_BOARD`, `BCU_ID` | `auto`, `imx943evk19b1`, vuoto | vedi [Reset](#reset) |
 | `ACCEPT_ELE_EULA` | `OFF` | `ON` = hai letto e accetti la EULA NXP; serve senza terminale (Docker, CI) |
 | `ELE_IMAGE` | vuoto | container ELE già disponibile, senza download né verifica |

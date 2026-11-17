@@ -6,6 +6,7 @@
 # Uso: usb-attach.sh [--once] [--conf <file>]      (serve root: usbip attach)
 # Ambiente: USBIP_HOST (default: gateway di default, cioe' Windows con rete WSL NAT; 127.0.0.1 se mirrored)
 #           USB_POLL (secondi tra un giro e l'altro, default 1)
+# Setup una tantum e policy AutoBind lato Windows: scripts/usb-setup.sh.
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 conf="$here/../board/usb-devices.conf"

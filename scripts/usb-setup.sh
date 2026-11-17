@@ -3,7 +3,10 @@
 #   1. client usbip di Ubuntu (linux-tools-virtual, hwdata) in /usr/local/bin/usbip; libusb per uuu
 #   2. regole udev per uuu e bcu (dispositivi NXP e FTDI della EVK accessibili senza root)
 #   3. servizio systemd safety-island-usb (scripts/usb-attach.sh) abilitato e avviato
-# La parte Windows (policy AutoBind di usbipd-win) NON e' automatica: la stampa alla fine.
+# La parte Windows (policy AutoBind di usbipd-win) NON e' automatica: alla fine stampa i comandi
+# `usbipd policy add ...` per i VID:PID di board/usb-devices.conf. Serve PowerShell da amministratore,
+# una volta per PC. Richiede systemd in WSL ([boot] systemd=true in /etc/wsl.conf).
+# Dopo: `make usb-status` per lo stato, `journalctl -u safety-island-usb -f` per il log.
 # Ambiente: UUU (uuu Linux, dal target CMake), USB_CONF.
 source "$(dirname "$0")/common.sh"
 conf="${USB_CONF:-$ROOT/board/usb-devices.conf}"

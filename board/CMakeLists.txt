@@ -6,7 +6,7 @@ set_property(CACHE JLINK_CORE PROPERTY STRINGS M33_0 M33_1 M7_0 M7_1)
 set(JLINK_PORT "2331" CACHE STRING "Porta del J-Link GDB server")
 set(GDB_ELF "" CACHE FILEPATH "ELF per gdb (vuoto = SM per M33_0, ELF dell'app per gli altri)")
 
-# uuu (mfgtools) nativo, stessa versione dell'uuu.exe usato prima
+# uuu (mfgtools) nativo
 set(UUU_VERSION "1.5.243")
 set(uuu_url "https://github.com/nxp-imx/mfgtools/releases/download/uuu_${UUU_VERSION}")
 si_tool(SI_UUU NAME uuu VERSION ${UUU_VERSION} EXE uuu RAW
@@ -14,10 +14,6 @@ si_tool(SI_UUU NAME uuu VERSION ${UUU_VERSION} EXE uuu RAW
     linux-aarch64 "${uuu_url}/uuu_aarch64" d57389225fced3b5307fb003e19d5eb6c252b51c9b92e8cc68b95b1b173b604d
     darwin-arm64  "${uuu_url}/uuu_mac_arm" 7f2ce10d5e738af635b339696709e2c3df4984801cc6c3764cd1c207c7aac9b0)
 add_custom_target(uuu-tool DEPENDS ${SI_UUU_DEPENDS})
-set(UUU "" CACHE STRING "uuu da usare: vuoto = uuu Linux pinnato (sopra); uuu.exe = quello Windows (ripiego)")
-if(UUU)
-    set(SI_UUU "${UUU}")
-endif()
 
 # Reset della board (scripts/reset.sh): hardware via J-Link per default, BCU come alternativa,
 # monitor SM come ultima risorsa
