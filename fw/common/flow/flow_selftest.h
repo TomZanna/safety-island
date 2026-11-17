@@ -16,4 +16,9 @@
 /* Esegue tutte le prove, logga ogni voce su RTT e ritorna true se sono passate. */
 bool flow_selftest_run(void);
 
+/* Scambio ICC fra i due core safe (payload in OCRAM + doorbell MU18 + CRC). Va
+ * chiamata dopo la sincronizzazione con l'owner della mailbox. Sul fieldbus e'
+ * uno skip che ritorna true. */
+bool flow_selftest_icc(void);
+
 #endif /* SI_FLOW_SELFTEST_H */

@@ -21,6 +21,9 @@
 #include <string.h>
 
 #include "board.h"
+#include "flow_icc.h"
+#include "flow_mem.h"
+#include "flow_platform.h"
 #include "fsl_device_registers.h"
 #include "rtt_shared.h"
 
@@ -151,27 +154,30 @@ void flow_platform_log(const char *tag, const char *format, ...)
 
 bool flow_platform_mu_post(flow_core_id_t self, flow_u8 channel, flow_u8 tag, const void *message, flow_u32 size)
 {
-    (void)self;
-    (void)channel;
-    (void)tag;
-    (void)message;
-    (void)size;
+    const flow_core_id_t peer = (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
 
-    return false; /* TODO(M2): flow_icc.c (payload in OCRAM + doorbell MU18) */
+    /* Il ciclo e' quello aperto dalla barrier: durante l'esecuzione di un ciclo
+     * nessuno la fa avanzare (serve ready[A] e ready[B]). */
+    return flow_icc_post(self, peer, channel, tag, flow_icc_cycle_current(), message, (flow_u16)size);
 }
 
 bool flow_platform_mu_wait(flow_core_id_t self, flow_u8 channel, flow_u8 tag, flow_u32 cycle, void *message,
     flow_u32 max_size, flow_u32 timeout_us)
 {
-    (void)self;
-    (void)channel;
-    (void)tag;
-    (void)cycle;
-    (void)message;
-    (void)max_size;
-    (void)timeout_us;
+    const flow_core_id_t peer = (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
+    flow_u16 length = 0u;
 
-    return false; /* TODO(M2): flow_icc.c */
+    if (!flow_icc_wait(self, peer, channel, tag, cycle, message, (flow_u16)max_size, &length, timeout_us)) {
+        return false;
+    }
+
+    /* Se il payload e' piu' corto del buffer, azzera il resto: chi valida il
+     * messaggio deve vedere zeri e non spazzatura di stack. */
+    if (length < (flow_u16)max_size) {
+        flow_memset((flow_u8 *)message + length, 0, max_size - (flow_u32)length);
+    }
+
+    return true;
 }
 
 void flow_platform_watchdog_kick(void)

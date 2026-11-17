@@ -111,6 +111,8 @@ function(imx94_firmware target)
             "${flow_dir}/flow_mem.c"
             "${flow_dir}/flow_crc.c"
             "${flow_dir}/flow_shm.c"
+            "${flow_dir}/flow_mu.c"
+            "${flow_dir}/flow_icc.c"
             "${flow_dir}/flow_mu18.c"
             "${flow_dir}/flow_selftest.c"
             "${flow_dir}/flow.c"

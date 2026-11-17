@@ -2,8 +2,9 @@
 
 #include "flow_config.h"
 #include "flow_crc.h"
+#include "flow_icc.h"
 #include "flow_mem.h"
-#include "flow_mu18.h"
+#include "flow_mu.h"
 #include "flow_platform.h"
 #include "flow_shm.h"
 
@@ -95,28 +96,53 @@ static void test_ocram(void)
     check("ocram condivisa", ok);
 }
 
-/* Link MU18. La SAFE_A (M7_0, lato B) fa il ping; la SAFE_B (M7_1, lato A) fa
- * da eco nel suo ciclo, quindi qui si limita a dire che il lato esiste. */
-static void test_mu18(void)
+/* Link ICC fra i due core safe: scambio full-duplex (ognuno pubblica il proprio
+ * stato e attende quello del peer, con retry perche' i due core escono dal boot in
+ * istanti diversi). Esercita in un colpo solo OCRAM, doorbell MU18, seq e i due
+ * CRC-32. Si chiama dopo la sincronizzazione con l'owner della mailbox. */
+bool flow_selftest_icc(void)
 {
-    if (!flow_mu18_available()) {
-        flow_platform_log("selftest", "%-24s skip (nessun lato MU18)", "mu18 link");
-        return;
-    }
-
-#if (FLOW_CORE_ID == FLOW_CORE_SAFE_A)
-    {
-        flow_u32 peer = 0u;
-        bool ok = false;
-
-        for (flow_u32 attempt = 0u; (attempt < 20u) && !ok; attempt++) {
-            ok = flow_mu18_ping(0x5A5A0000u | attempt, 50000u, &peer);
-        }
-        check("mu18 link (ping)", ok);
-        flow_platform_log("selftest", "mu18 peer 0x%08x", (unsigned)peer);
-    }
+#if (FLOW_CORE_ID == FLOW_CORE_FIELDBUS)
+    flow_platform_log("selftest", "%-24s skip (fieldbus)", "icc exchange");
+    return true;
 #else
-    flow_platform_log("selftest", "%-24s echo server", "mu18 link");
+    typedef struct FLOW_PACKED icc_probe
+    {
+        flow_u32 role;
+        flow_u32 cycles;
+        flow_u32 magic;
+    } icc_probe_t;
+
+    const flow_core_id_t self = (flow_core_id_t)FLOW_CORE_ID;
+    const flow_core_id_t peer = (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
+    icc_probe_t out;
+    bool ok = false;
+    flow_u16 attempt;
+
+    out.role = self;
+    out.cycles = flow_platform_cycles();
+    out.magic = 0x1CC1u;
+
+    for (attempt = 0u; (attempt < 50u) && !ok; attempt++) {
+        icc_probe_t in;
+        flow_u16 length = 0u;
+        const flow_u32 cycle = flow_icc_cycle_current();
+
+        flow_memset(&in, 0, sizeof(in));
+
+        if (!flow_icc_post(self, peer, FLOW_MU_CHAN_SESSION, 0u, cycle, &out, (flow_u16)sizeof(out))) {
+            continue;
+        }
+
+        if (!flow_icc_wait(self, peer, FLOW_MU_CHAN_SESSION, 0u, cycle, &in, (flow_u16)sizeof(in), &length, 20000u)) {
+            continue;
+        }
+
+        ok = (length == sizeof(in)) && (in.magic == 0x1CC1u) && (in.role == peer);
+    }
+
+    check("icc exchange", ok);
+    return ok;
 #endif
 }
 
@@ -131,7 +157,6 @@ bool flow_selftest_run(void)
     test_crc();
     test_split();
     test_ocram();
-    test_mu18();
 
     flow_platform_log("selftest", "RESULT: %s", s_failed ? "FAIL" : "PASS");
 
