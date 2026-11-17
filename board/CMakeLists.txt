@@ -49,16 +49,30 @@ if(BCU_BOARD)
     add_dependencies(reset bcu-tool)
 endif()
 add_custom_target(uart  COMMAND ${env} "${SI_SCRIPTS}/uart.sh"  USES_TERMINAL VERBATIM)
+
+# debug usa gdb del toolchain: il target lo scarica (se e' nel PATH non c'e' nulla da fare)
 add_custom_target(debug COMMAND ${env} "${SI_SCRIPTS}/debug.sh" USES_TERMINAL VERBATIM)
+if(SI_TOOLCHAIN_TARGET)
+    add_dependencies(debug ${SI_TOOLCHAIN_TARGET})
+endif()
 add_custom_target(debug-flash COMMAND ${env} "${SI_SCRIPTS}/debug.sh" USES_TERMINAL VERBATIM)
 add_dependencies(debug-flash flash)
+if(SI_TOOLCHAIN_TARGET)
+    add_dependencies(debug-flash ${SI_TOOLCHAIN_TARGET})
+endif()
 
-# Per core secondario: debug-<app> (debug.sh) con JLINK_CORE fissato
+# Per core secondario: debug-<app> (debug.sh) con JLINK_CORE fissato e l'ELF dell'app gia' compilato
 foreach(pair "m33s;M33_1" "m70;M7_0" "m71;M7_1")
     list(GET pair 0 short)
     list(GET pair 1 core)
     si_script_env(core_env ${common_env} "JLINK_CORE=${core}")
     add_custom_target(debug-${short} COMMAND ${core_env} "${SI_SCRIPTS}/debug.sh" USES_TERMINAL VERBATIM)
+    if(SI_TOOLCHAIN_TARGET)
+        add_dependencies(debug-${short} ${SI_TOOLCHAIN_TARGET})
+    endif()
+    if(TARGET fw-${short})
+        add_dependencies(debug-${short} fw-${short})
+    endif()
 endforeach()
 
 # USB in WSL: setup una tantum (sudo) e stato
@@ -69,9 +83,11 @@ add_custom_target(usb-status COMMAND ${env} "${SI_SCRIPTS}/usb-status.sh" USES_T
 # Console RTT da terminale (un canale per core, control block condiviso): rtt = tutti i core,
 # rtt-<app> = solo quel core (input diretto). In VS Code l'RTT lo legge Cortex-Debug (rttConfig).
 add_custom_target(rtt COMMAND ${env} "${SI_SCRIPTS}/rtt.sh" USES_TERMINAL VERBATIM)
+add_dependencies(rtt py-deps)
 foreach(app m33s m70 m71)
     si_script_env(rtt_env ${common_env} "RTT_CHANNEL=${app}")
     add_custom_target(rtt-${app} COMMAND ${rtt_env} "${SI_SCRIPTS}/rtt.sh" USES_TERMINAL VERBATIM)
+    add_dependencies(rtt-${app} py-deps)
 endforeach()
 
 add_custom_target(inspect

@@ -14,6 +14,8 @@ if(MKIMAGE_EXE)
     set(mkimage_target "")
 else()
     find_program(SI_MAKE make REQUIRED)
+    # mkimage_imx8 in imx-mkimage ha CC=gcc nel suo Makefile: se manca, fallisci al configure.
+    find_program(SI_HOST_GCC gcc REQUIRED)
     # Il Makefile NXP usa $(PWD) per il percorso di output: lo forziamo con MKIMG=
     ExternalProject_Add(mkimage
         GIT_REPOSITORY "${MKIMAGE_REPO}"

@@ -43,6 +43,14 @@ set(SI_ARMGCC_DIR "${armgcc}" PARENT_SCOPE)
 set(SI_GDB "${armgcc}/bin/arm-none-eabi-gdb" PARENT_SCOPE)
 set(SI_TOOLCHAIN_TARGET "${tc_target}" PARENT_SCOPE)
 
+# --- venv per west e pylink ------------------------------------------------------------------------
+# Target a parte: "make rtt" ha bisogno del venv (pylink) ma non dell'SDK, quindi non deve dipendere
+# da deps-sdk (che fa west update).
+add_custom_target(py-deps
+    COMMAND "${SI_SCRIPTS}/py-deps.sh"
+    COMMENT "venv ext/venv (west, pylink)"
+    USES_TERMINAL VERBATIM)
+
 # --- SDK via west ----------------------------------------------------------------------------------
 set(manifest "${CMAKE_CURRENT_SOURCE_DIR}/west.yml")
 file(SHA256 "${manifest}" manifest_sha)
@@ -56,10 +64,12 @@ add_custom_command(
     COMMENT "SDK MCUXpresso: west update (deps/west.yml)"
     USES_TERMINAL VERBATIM)
 add_custom_target(deps-sdk DEPENDS "${stamp}")
+add_dependencies(deps-sdk py-deps)
 # "make deps" forza comunque un west update (utile se qualcuno ha toccato ext/sdk a mano)
 add_custom_target(deps
     COMMAND "${SI_SCRIPTS}/deps.sh" "${stamp}"
     COMMENT "SDK MCUXpresso: west update" USES_TERMINAL VERBATIM)
+add_dependencies(deps py-deps)
 if(tc_target)
     add_dependencies(deps ${tc_target})
 endif()

@@ -10,4 +10,5 @@ match=$(compgen -G "$port" | head -1 || true)
 [ -n "$match" ] && [ -c "$match" ] || die "$port non trovata ('make usb-status' per le seriali presenti)"
 info "console $match"
 if command -v picocom >/dev/null; then exec picocom -q -b 115200 "$match"; fi
+command -v screen >/dev/null || die "nessuna console seriale: 'make usb-setup' installa picocom"
 exec screen "$match" 115200

@@ -11,6 +11,9 @@
 source "$(dirname "$0")/common.sh"
 conf="${USB_CONF:-$ROOT/board/usb-devices.conf}"
 
+# Il servizio di attach usa systemd: in WSL va abilitato in /etc/wsl.conf.
+[ -d /run/systemd/system ] || die "systemd non attivo: aggiungi '[boot] systemd=true' in /etc/wsl.conf e riavvia WSL ('wsl --shutdown'), poi rilancia 'make usb-setup'"
+
 # 1. usbip
 if ! command -v usbip >/dev/null; then
     info "installo il client usbip (linux-tools-virtual, hwdata)"

@@ -5,5 +5,5 @@
 # stessi canali (due lettori si rubano i dati).
 source "$(dirname "$0")/common.sh"
 py="$ROOT/ext/venv/bin/python"
-[ -x "$py" ] || die "venv di ext/ assente: 'make deps'"
+[ -x "$py" ] || die "venv di ext/ assente: 'make py-deps' (o 'make deps')"
 exec "$py" -I "$ROOT/scripts/rtt.py" ${RTT_CHANNEL:+--channel "$RTT_CHANNEL"} ${RTT_CORE:+--core "$RTT_CORE"}
