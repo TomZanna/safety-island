@@ -1,13 +1,15 @@
-# imx94_firmware(<target> CORE cm7_core0|cm7_core1|cm33_core1 SOURCES <file>...)
+# imx94_firmware(<target> CORE cm7_core0|cm7_core1|cm33_core1 [FLOW_ROLE master|fieldbus] SOURCES <file>...)
 #
 # Crea l'eseguibile <target>.elf (+ .bin, .map) per un core secondario dell'i.MX94, con l'SDK MCUXpresso
 # minimo di SDK_ROOT (ext/sdk/mcuxsdk, sincronizzato da west) e il codice comune di fw/common.
 # Variabili (dal superbuild): SDK_ROOT, WAIT_DEBUGGER. Log/input via RTT condiviso (fw/common/rtt_shared.c).
+# FLOW_ROLE aggiunge il virtual safe PLC (fw/common/flow/): master = core safe (M7_0/M7_1),
+# fieldbus = M33_1 (fa l'A55 + lo slave FSoE). Il ruolo determina FLOW_CORE_ID (vedi flow_config.h).
 include_guard(GLOBAL)
 set(FW_COMMON "${CMAKE_CURRENT_LIST_DIR}/../common")
 
 function(imx94_firmware target)
-    cmake_parse_arguments(F "" "CORE" "SOURCES" ${ARGN})
+    cmake_parse_arguments(F "" "CORE;FLOW_ROLE" "SOURCES" ${ARGN})
     if(NOT SDK_ROOT OR NOT EXISTS "${SDK_ROOT}/devices/i.MX/i.MX943")
         message(FATAL_ERROR "SDK_ROOT=${SDK_ROOT} non valido: 'make deps'")
     endif()
@@ -67,6 +69,32 @@ function(imx94_firmware target)
         CPU_MIMX94398AVKM_${core} MIMX94398_${core}_SERIES
         __STARTUP_CLEAR_BSS MCUXPRESSO_SDK SDK_DEBUGCONSOLE=2
         $<$<CONFIG:Debug>:DEBUG>)
+
+    # --- virtual safe PLC (fw/common/flow) -------------------------------------------------------
+    # FLOW_ROLE: master = core safe (m70 = SAFE_A, m71 = SAFE_B), fieldbus = m33s (A55 + slave FSoE).
+    if(F_FLOW_ROLE)
+        if(target STREQUAL "m70")
+            set(flow_core_id 0)
+        elseif(target STREQUAL "m71")
+            set(flow_core_id 1)
+        elseif(target STREQUAL "m33s")
+            set(flow_core_id 2)
+        else()
+            message(FATAL_ERROR "imx94_firmware: FLOW_ROLE su '${target}' non previsto")
+        endif()
+        set(flow_dir "${FW_COMMON}/flow")
+        target_sources(${target} PRIVATE
+            "${flow_dir}/flow_mem.c"
+            "${flow_dir}/flow_crc.c"
+            "${flow_dir}/flow_shm.c"
+            "${flow_dir}/flow_mu18.c"
+            "${flow_dir}/flow_selftest.c"
+            "${flow_dir}/flow.c"
+            "${FW_COMMON}/flow_platform_imx94.c")
+        target_include_directories(${target} PRIVATE "${flow_dir}")
+        target_compile_definitions(${target} PRIVATE FLOW_CORE_ID=${flow_core_id})
+    endif()
+
     set(arch -mthumb ${cpu} -mfloat-abi=hard)
     target_compile_options(${target} PRIVATE ${arch}
         -include "${FW_COMMON}/mcux_config.h"

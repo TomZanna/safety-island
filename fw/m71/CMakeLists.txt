@@ -3,4 +3,4 @@ cmake_minimum_required(VERSION 3.25)
 project(m71 LANGUAGES C ASM)
 include(../cmake/imx94.cmake)
 
-imx94_firmware(m71 CORE cm7_core1 SOURCES main.c)
+imx94_firmware(m71 CORE cm7_core1 FLOW_ROLE master SOURCES main.c)
