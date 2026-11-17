@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Superbuild: nessun linguaggio qui. I moduli orchestrano tool esterni (mkimage, typst, uuu, J-Link)
+# Superbuild: nessun linguaggio qui. I moduli orchestrano tool esterni (mkimage, doxygen, uuu, J-Link)
 # e, in futuro, le app dei core come sottoprogetti con il loro toolchain.
 project(safety_island
     DESCRIPTION "i.MX94 EVK: System Manager e core secondari, build e run"
@@ -22,7 +22,7 @@ add_subdirectory(sm)      # System Manager: binari committati + build riproducib
 add_subdirectory(fw)      # app dei core secondari (fw/m33s, fw/m70, fw/m71)
 add_subdirectory(image)   # mkimage_imx8 + flash.bin
 add_subdirectory(board)   # flash, run, reset, uart, debug (USB/WSL)
-add_subdirectory(docs)    # typst
+add_subdirectory(docs)    # doxygen
 
 add_custom_target(si-help
     COMMAND "${CMAKE_COMMAND}" -E echo "Target (cmake --build --preset <preset> --target <t>, o make <t>):"
@@ -39,7 +39,7 @@ add_custom_target(si-help
     COMMAND "${CMAKE_COMMAND}" -E echo "  inspect      container AHAB di flash.bin"
     COMMAND "${CMAKE_COMMAND}" -E echo "  ele          scarica il firmware ELE NXP (chiede la EULA)"
     COMMAND "${CMAKE_COMMAND}" -E echo "  sm-verify    ricostruisce l'SM nel Docker e confronta con sm/ (sm-update: sovrascrive)"
-    COMMAND "${CMAKE_COMMAND}" -E echo "  docs         build/<preset>/docs/safety-island.pdf;  docs-live: typst watch"
+    COMMAND "${CMAKE_COMMAND}" -E echo "  docs         build/<preset>/docs/html/index.html;  docs-serve: server locale"
     COMMAND "${CMAKE_COMMAND}" -E echo "  docker-image il target image dentro un container"
     COMMAND "${CMAKE_COMMAND}" -E echo "  clean, distclean, clean-all   pulizia (solo make): build del preset / tutti i build / anche ext e .west"
     VERBATIM)

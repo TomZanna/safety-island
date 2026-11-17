@@ -22,6 +22,7 @@ Al primo build vengono scaricati e verificati: toolchain Arm GNU, `uuu`, l'SDK M
 il firmware ELE NXP (ti chiede di accettare la EULA) e `mkimage_imx8`. Tutto finisce in `ext/` (condiviso
 tra i preset; sopravvive a `make clean` e `make distclean`, solo `make clean-all` lo rimuove) o in
 `build/`. Le volte successive si ricostruisce solo quello che è cambiato (~15 s, niente download).
+Doxygen è una dipendenza solo di `docs`: viene scaricato (1.18.0, sha256) al primo `make docs`.
 
 Il `Makefile` è solo una scorciatoia: `make <target> [PRESET=mx94alt]` equivale a
 `cmake --build --preset <PRESET> --target <target>`, dopo aver configurato il preset se serve.
@@ -29,7 +30,8 @@ Il `Makefile` è solo una scorciatoia: `make <target> [PRESET=mx94alt]` equivale
 ## Cosa serve
 
 Da un clone pulito serve solo questo sull'host; **tutto il resto lo scarica il build al primo uso**
-(toolchain Arm, `uuu`, `bcu`, SDK via `west`, `mkimage`, ELE, typst), con versioni pinnate e sha256.
+(toolchain Arm, `uuu`, `bcu`, SDK via `west`, `mkimage`, ELE; Doxygen solo per `docs`), con versioni
+pinnate e sha256.
 
 - **Sempre:** `cmake` ≥ 3.25, `make`, `gcc` (per `mkimage_imx8`), `git`, `curl`, `python3`, e `uv`
   oppure il pacchetto `python3-venv` (il venv in `ext/venv` serve a `west` e a `make rtt`).
@@ -43,7 +45,8 @@ Da un clone pulito serve solo questo sull'host; **tutto il resto lo scarica il b
 - **EULA ELE:** il primo `make image` scarica il firmware ELE e l'installer NXP chiede di accettare la
   EULA; in un ambiente non interattivo: `cmake --preset mx94evk -DACCEPT_ELE_EULA=ON` (equivale a
   "ho letto e accetto la EULA NXP").
-- **`docs`:** typst viene scaricato se assente (Linux x86_64); su altri host va messo nel `PATH`.
+- **`docs`:** nessun prerequisito manuale: Doxygen 1.18.0 viene scaricato in `ext/tools/` al primo
+  `make docs` (sha256). Mermaid e MathJax sono caricati dal browser via CDN; non servono Graphviz né LaTeX.
 
 ## Struttura
 
@@ -59,7 +62,7 @@ ele/                 firmware ELE NXP: scaricato, EULA, ele.sha256
 sm/                  binari SM committati + Dockerfile riproducibile + patches/ alla config NXP
 image/               mkimage_imx8 (ExternalProject) e flash.bin
 board/               flash, run, reset, uart, debug, usb: wrapper agli script; usb-devices.conf
-docs/                typst
+docs/                Doxyfile + pagine Markdown (architettura/setup/misure) + tema; il resto è generato
 scripts/             script per USB/seriale/J-Link/uuu, west e Docker dell'SM
 docker/              container per il target image
 .vscode/             task, debug (Cortex-Debug), IntelliSense
@@ -89,7 +92,7 @@ fw/<app> o M*_BIN  ──┘                                                    
 | `inspect` | container e immagini AHAB di `flash.bin` (`scripts/ahab_walk.py`) |
 | `ele` | scarica il firmware ELE (2.0.6), estrae il container i.MX94 A0, verifica lo sha256 |
 | `sm-verify` / `sm-update` | ricostruiscono l'SM da sorgenti nel Docker dedicato: confronto con `sm/`, o sovrascrittura |
-| `docs` / `docs-live` | `build/<preset>/docs/safety-island.pdf` con typst; `docs-live` = `typst watch` |
+| `docs` / `docs-serve` | `build/<preset>/docs/html/index.html` con Doxygen; `docs-serve` = server locale su `DOCS_PORT` |
 | `docker-image` | `image` dentro un container (preset `docker`, senza `fw/`, output in `build/docker/`) |
 | `clean` / `distclean` / `clean-all` | pulizia (solo `make`, senza riconfigurare): build del preset corrente / tutti i build / anche `ext/` e `.west/`. Le prime due non richiedono rete |
 | `py-deps` | solo il venv `ext/venv` (west + pylink): dipendenza di `rtt` e `deps` |
@@ -116,7 +119,7 @@ fw/cmake/imx94.cmake                  imx94_firmware(): sorgenti SDK e del ruolo
 - Ogni app è solo wiring: `board_init()`, banner RTT (agente SCMI e clock del core) e punto di ingresso del
   ruolo. Il codice di un ruolo sta in `fw/safe/` o `fw/fieldbus/`; in `fw/common/` solo quello che serve
   identico a più ruoli. `ROLE` in `imx94_firmware()` sceglie i sorgenti (la struttura è in
-  `docs/ch/10-architettura.typ`).
+  `docs/architettura.md`).
 - Nessuna periferica: niente UART, pin o clock da chiedere all'SM.
 - **SDK come dipendenza, non copiato:** `deps/west.yml` pinna per commit 4 repo NXP (`mcuxsdk-core`,
   `mcux-devices-imx`, `mcux-component`, `mcu-sdk-cmsis`), clonati shallow in `ext/sdk/` da west
@@ -136,8 +139,9 @@ fw/cmake/imx94.cmake                  imx94_firmware(): sorgenti SDK e del ruolo
 ## Virtual safe PLC (FSoE)
 
 Le tre app non sono più solo un banner: insieme formano un **1oo2 FSoE** che gira sulla board. Due core
-eseguono lo stesso codice di sicurezza, il terzo fa il campo. Il documento tecnico (architettura,
-protocolli, misure) è `make docs` → `build/<preset>/docs/safety-island.pdf`; qui solo il minimo per usarlo.
+eseguono lo stesso codice di sicurezza, il terzo fa il campo. L'architettura e le misure sono in
+`docs/` (`make docs` → `build/<preset>/docs/html/index.html`); API e protocolli sono nei commenti
+Doxygen di `fw/`. Qui solo il minimo per usarlo.
 
 | App | Core | Ruolo |
 |---|---|---|
@@ -353,7 +357,7 @@ cmake --preset mx94evk -DM70_WAIT_DEBUGGER=ON -DRESET_METHOD=bcu
 | `MKIMAGE_TAG`, `MKIMAGE_EXE` | `lf-6.18.20-2.0.0`, vuoto | versione di mkimage, o un mkimage già compilato |
 | `SM_TAG`, `SM_CONFIGS` | `lf-6.18.20-2.0.0`, `mx94evk;mx94alt` | per `sm-verify`/`sm-update` |
 | `SI_TOOLS_DIR` | `ext/tools` | dove scaricare toolchain e strumenti |
-| `TYPST_VERSION`, `DOCS_VIEWER` | `0.13.1`, vuoto | `DOCS_VIEWER=wslview` apre il PDF in `docs-live` |
+| `DOXYGEN_VERSION`, `DOCS_PORT`, `DOCS_AWESOME_CSS` | `1.18.0`, `8000`, `ON` | versione Doxygen scaricata, porta di `docs-serve`, tema committato |
 
 I percorsi relativi dei binari sono risolti rispetto alla radice del repo.
 
@@ -452,7 +456,7 @@ container.
   `WAIT_DEBUGGER` + breakpoint in `board_init`, `sm-update`.
 - **Non provati:** VS Code dall'interfaccia (configurazioni multi-core, task RTT come preLaunchTask,
   Live Watch: provati solo gli equivalenti da terminale), riavvio di WSL (`wsl --shutdown`) con il
-  servizio, macOS/aarch64, `docs-live`, preset `mx94alt` con il nuovo SM,
+  servizio, macOS/aarch64, `docs-serve`, preset `mx94alt` con il nuovo SM,
   `docker-image` e `sm-verify` senza cache Docker dopo l'upgrade.
 - **`debug`:** l'attach ferma il core. In modalità interattiva bisogna fare `continue` prima di uscire;
   con `GDB_BATCH=1` lo script lo fa ripartire da solo. Un core alla volta (una sola porta GDB).

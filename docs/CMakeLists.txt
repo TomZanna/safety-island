@@ -1,50 +1,97 @@
-# Documentazione typst. typst e' una dipendenza dichiarata: se non e' nel PATH viene scaricata
-# (versione pinnata, sha256 verificato) al primo build di docs.
-# 0.15.1: richiesta dai package pinnati in docs/lib/packages.typ (cetz 0.5.x e codly 2.x vogliono >= 0.15).
-set(TYPST_VERSION "0.15.1" CACHE STRING "Versione typst scaricata se non e' nel PATH")
-set(TYPST_SHA256 "a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c"
-    CACHE STRING "sha256 di typst-x86_64-unknown-linux-musl.tar.xz")
-set(DOCS_VIEWER "" CACHE STRING "Visualizzatore per docs-live (es. wslview); vuoto = non apre nulla")
-set(DOCS_PACKAGE_PATH "" CACHE PATH
-    "Package typst locali (build offline): vuoto = registry + ~/.cache/typst")
+# Documentazione del progetto: Doxygen unico per API, protocolli e pagine Markdown.
+#
+# Doxygen e' una dipendenza del target: il binario e' pinnato e scaricato in
+# ext/tools/doxygen-<versione>/ (sha256 verificato). NO_PATH evita di usare un
+# doxygen di sistema, cosi' la resa non cambia da una macchina all'altra.
+# Cambiare versione = aggiornare anche URL e sha256 nella tabella si_tool qui sotto.
+set(DOXYGEN_VERSION "1.18.0" CACHE STRING "Doxygen pinnato scaricato in ext/tools")
+set(DOCS_PORT "8000" CACHE STRING "Porta di docs-serve")
+option(DOCS_AWESOME_CSS "Tema doxygen-awesome-css committato in docs/theme" ON)
 
-si_tool(TYPST NAME typst VERSION ${TYPST_VERSION} EXE typst
-    linux-x86_64 "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
-    ${TYPST_SHA256})
-
-file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.typ")
-# Sorgenti citati dai listati (codly.new(path(...))): se cambia il codice, il PDF si rigenera.
-set(quoted_sources
-    "${PROJECT_SOURCE_DIR}/fw/common/flow/flow_config.h"
-    "${PROJECT_SOURCE_DIR}/fw/common/flow/flow_shm_api.h"
-    "${PROJECT_SOURCE_DIR}/fw/common/flow/flow_mu.h"
-    "${PROJECT_SOURCE_DIR}/fw/common/flow/flow_icc.h"
-    "${PROJECT_SOURCE_DIR}/fw/safe/flow_safe.c"
-    "${PROJECT_SOURCE_DIR}/fw/cmake/imx94.cmake")
-set(pdf "${CMAKE_BINARY_DIR}/docs/safety-island.pdf")
-
-if(DOCS_PACKAGE_PATH)
-    set(package_path --package-path "${DOCS_PACKAGE_PATH}")
+si_host(host)
+if(host STREQUAL "linux-x86_64" OR host STREQUAL "darwin-arm64" OR host STREQUAL "darwin-x86_64")
+    si_tool(DOXYGEN NAME doxygen VERSION ${DOXYGEN_VERSION} NO_PATH EXE doxygen
+        linux-x86_64
+            "https://github.com/doxygen/doxygen/releases/download/Release_1_18_0/doxygen-1.18.0.linux.bin.tar.gz"
+            14fa81bdc34171edb5f1f02b1d60e74802f0439b77fa44e592565d517d72df90
+        darwin-arm64
+            "https://github.com/doxygen/doxygen/releases/download/Release_1_18_0/doxygen-1.18.0-mac-arm.zip"
+            31d1c74467a9f6f456b4e6a4eff0c03e93d1ffa92da5fdf2d53a2f14ebaabbd7
+        darwin-x86_64
+            "https://github.com/doxygen/doxygen/releases/download/Release_1_18_0/doxygen-1.18.0-mac-intel.zip"
+            8045d72f6f900fd430042339c1493d6eefcc85a7f990361fb57685682f16a2f9)
+    set(DOXYGEN_CMD "${DOXYGEN}")
+    set(DOXYGEN_CMD_DEPENDS "${DOXYGEN_DEPENDS}")
+    set(DOXYGEN_CMD_TARGET "${DOXYGEN_TARGET}")
+else()
+    # Host senza binario precompilato: si usa quello nel PATH e, se manca o e'
+    # troppo vecchio, solo il target docs fallisce (make image non deve
+    # richiedere doxygen).
+    find_program(DOXYGEN_CMD doxygen)
+    set(DOXYGEN_CMD_DEPENDS "")
+    set(DOXYGEN_CMD_TARGET "")
+    if(DOXYGEN_CMD)
+        execute_process(COMMAND "${DOXYGEN_CMD}" --version
+            OUTPUT_VARIABLE DOXYGEN_FOUND_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+        string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" DOXYGEN_FOUND_VERSION "${DOXYGEN_FOUND_VERSION}")
+        if(DOXYGEN_FOUND_VERSION VERSION_LESS "${DOXYGEN_VERSION}")
+            message(STATUS "doxygen ${DOXYGEN_FOUND_VERSION}: troppo vecchio per docs (serve ${DOXYGEN_VERSION})")
+            set(DOXYGEN_CMD "")
+        endif()
+    endif()
+    if(NOT DOXYGEN_CMD)
+        message(STATUS "doxygen: non disponibile per ${host}; il target docs spieghera' cosa fare")
+    endif()
 endif()
 
-add_custom_command(
-    OUTPUT "${pdf}"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/docs"
-    COMMAND "${TYPST}" compile --root "${PROJECT_SOURCE_DIR}" ${package_path}
-            "${CMAKE_CURRENT_SOURCE_DIR}/main.typ" "${pdf}"
-    DEPENDS ${sources} ${quoted_sources} ${TYPST_DEPENDS}
-    COMMENT "typst: docs/main.typ -> ${pdf}"
-    VERBATIM)
-add_custom_target(docs DEPENDS "${pdf}")
-
-set(open "")
-if(DOCS_VIEWER)
-    set(open --open "${DOCS_VIEWER}")
+if(DOCS_AWESOME_CSS)
+    set(DOCS_HTML_EXTRA_STYLESHEET
+        "${PROJECT_SOURCE_DIR}/docs/theme/doxygen-awesome-css/doxygen-awesome.css")
+    set(DOCS_HTML_COLORSTYLE "LIGHT")
+else()
+    set(DOCS_HTML_EXTRA_STYLESHEET "")
+    set(DOCS_HTML_COLORSTYLE "AUTO_LIGHT")
 endif()
-add_custom_target(docs-live
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/docs"
-    COMMAND "${CMAKE_COMMAND}" -E echo "typst watch: salva docs/*.typ e ${pdf} si rigenera (Ctrl-C per uscire)"
-    COMMAND "${TYPST}" watch --root "${PROJECT_SOURCE_DIR}" ${package_path} ${open}
-            "${CMAKE_CURRENT_SOURCE_DIR}/main.typ" "${pdf}"
-    DEPENDS ${TYPST_DEPENDS}
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in" "${CMAKE_BINARY_DIR}/docs/Doxyfile" @ONLY)
+
+# Sorgenti che, se cambiano, rigenerano la documentazione. La libreria FSoE
+# vendored e' esclusa: non si modifica e non si documenta come nostra.
+file(GLOB_RECURSE doc_sources CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/fw/*.c"
+    "${PROJECT_SOURCE_DIR}/fw/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.dox"
+    "${CMAKE_CURRENT_SOURCE_DIR}/theme/*.css"
+    "${CMAKE_CURRENT_SOURCE_DIR}/theme/*.js")
+list(FILTER doc_sources EXCLUDE REGEX "/fw/common/fsoe/")
+
+if(DOXYGEN_CMD)
+    add_custom_command(
+        OUTPUT "${CMAKE_BINARY_DIR}/docs/html/index.html"
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${CMAKE_BINARY_DIR}/docs/html"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/docs"
+        COMMAND "${DOXYGEN_CMD}" "${CMAKE_BINARY_DIR}/docs/Doxyfile"
+        DEPENDS ${doc_sources} "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
+                "${CMAKE_BINARY_DIR}/docs/Doxyfile" ${DOXYGEN_CMD_DEPENDS}
+        COMMENT "doxygen: sorgenti + docs/ -> ${CMAKE_BINARY_DIR}/docs/html"
+        VERBATIM)
+    add_custom_target(docs DEPENDS "${CMAKE_BINARY_DIR}/docs/html/index.html")
+    if(DOXYGEN_CMD_TARGET)
+        add_dependencies(docs ${DOXYGEN_CMD_TARGET})
+    endif()
+else()
+    add_custom_target(docs
+        COMMAND "${CMAKE_COMMAND}" -E echo
+                "doxygen >= ${DOXYGEN_VERSION} non disponibile: aggiornalo nel PATH oppure usa un host con download pinnato"
+        COMMAND "${CMAKE_COMMAND}" -E false
+        VERBATIM)
+endif()
+
+add_custom_target(docs-serve
+    COMMAND "${CMAKE_COMMAND}" -E echo "docs: http://127.0.0.1:${DOCS_PORT}/ (Ctrl-C per uscire)"
+    COMMAND "${Python3_EXECUTABLE}" -m http.server "${DOCS_PORT}" --bind 127.0.0.1
+            --directory "${CMAKE_BINARY_DIR}/docs/html"
+    DEPENDS docs
     USES_TERMINAL VERBATIM)

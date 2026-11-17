@@ -1,0 +1,88 @@
+# Doxyfile generato da docs/CMakeLists.txt: non si modifica qui, si modifica
+# questo file e si riconfigura. Le variabili @...@ sono sostituite da CMake.
+
+PROJECT_NAME           = safety-island
+PROJECT_BRIEF          = "i.MX94 EVK: virtual safe PLC FSoE"
+PROJECT_NUMBER         = 1.0
+OUTPUT_DIRECTORY       = @CMAKE_BINARY_DIR@/docs
+DOXYFILE_ENCODING      = UTF-8
+INPUT_ENCODING         = UTF-8
+
+# --- input -------------------------------------------------------------------
+INPUT                  = @PROJECT_SOURCE_DIR@/fw \
+                         @CMAKE_CURRENT_SOURCE_DIR@
+FILE_PATTERNS          = *.c *.h *.md *.dox
+RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = @CMAKE_CURRENT_SOURCE_DIR@/index.md
+EXCLUDE                = @PROJECT_SOURCE_DIR@/fw/common/fsoe \
+                         @CMAKE_CURRENT_SOURCE_DIR@/theme
+EXCLUDE_PATTERNS       = */build/* */ext/* */fsoe/* */theme/*
+
+STRIP_FROM_PATH        = @PROJECT_SOURCE_DIR@
+STRIP_FROM_INC_PATH    = @PROJECT_SOURCE_DIR@
+OPTIMIZE_OUTPUT_FOR_C  = YES
+TYPEDEF_HIDES_STRUCT   = NO
+CASE_SENSE_NAMES       = YES
+
+# --- C -----------------------------------------------------------------------
+EXTRACT_ALL            = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+VERBATIM_HEADERS       = YES
+
+JAVADOC_AUTOBRIEF      = YES
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = @PROJECT_SOURCE_DIR@/fw/common \
+                         @PROJECT_SOURCE_DIR@/fw/common/flow \
+                         @PROJECT_SOURCE_DIR@/fw/common/flow/port \
+                         @PROJECT_SOURCE_DIR@/fw/common/fsoe/include
+PREDEFINED             = FLOW_DEBUG=1 FLOW_LOG_VERBOSE=0
+
+# --- warning -----------------------------------------------------------------
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_INCOMPLETE_DOC = NO
+WARN_NO_PARAMDOC       = NO
+WARN_LOGFILE           = @CMAKE_BINARY_DIR@/docs/doxygen-warnings.log
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
+EXCLUDE_SYMBOLS        = FLOW_STATIC_ASSERT
+
+# --- HTML --------------------------------------------------------------------
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_TIMESTAMP         = NO
+HTML_DYNAMIC_SECTIONS  = YES
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+SEARCHENGINE           = YES
+HTML_EXTRA_STYLESHEET  = @DOCS_HTML_EXTRA_STYLESHEET@
+HTML_COLORSTYLE        = @DOCS_HTML_COLORSTYLE@
+
+# --- formule e diagrammi -----------------------------------------------------
+# MathJax renderizza le formule nel browser: non serve LaTeX.
+USE_MATHJAX            = YES
+MATHJAX_VERSION        = MathJax_3
+MATHJAX_FORMAT         = chtml
+MATHJAX_RELPATH        = https://cdn.jsdelivr.net/npm/mathjax@3.2.2
+MATHJAX_EXTENSIONS     = ams
+
+# Mermaid client-side: solo HTML, niente mmdc/Node/Graphviz.
+MERMAID_RENDER_MODE    = CLIENT_SIDE
+MERMAID_JS_URL         = https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs
+HAVE_DOT               = NO
+
+# --- altri output ------------------------------------------------------------
+GENERATE_LATEX         = NO
+GENERATE_RTF           = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = NO
+GENERATE_HTMLHELP      = NO

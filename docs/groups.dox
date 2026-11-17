@@ -1,0 +1,73 @@
+/**
+ * @defgroup flow Virtual safe PLC (FSoE)
+ * @brief Codice e ABI condivisi dai tre ruoli del banco 1oo2.
+ *
+ * Il virtual safe PLC e' composto da due core safe (SAFE_A su m70, SAFE_B su
+ * m71) e da un ruolo FIELDBUS (m33s). La documentazione di dettaglio sta nei
+ * file che implementano i protocolli; questa pagina serve solo a dare un nome
+ * ai gruppi.
+ */
+
+/**
+ * @defgroup flow_config Configurazione
+ * @ingroup flow
+ * @brief Taglie, indirizzi, tempi e opzioni di build in un posto solo.
+ */
+
+/**
+ * @defgroup flow_shm Mailbox condivisa
+ * @ingroup flow
+ * @brief Frame FSoE spezzato in due meta' (CRC e dati), con seqlock e CRC-16.
+ */
+
+/**
+ * @defgroup flow_mu Cross-check 1oo2
+ * @ingroup flow
+ * @brief Messaggi protetti fra SAFE_A e SAFE_B: routing, sequenza e CRC-32.
+ */
+
+/**
+ * @defgroup flow_icc Trasporto ICC
+ * @ingroup flow
+ * @brief Payload in OCRAM, doorbell MU18 e barrier di ciclo.
+ */
+
+/**
+ * @defgroup flow_mu18 MU18
+ * @ingroup flow
+ * @brief Driver dei registri dell'unica MU fra due core secondari.
+ */
+
+/**
+ * @defgroup flow_safe Ruolo safe
+ * @ingroup flow
+ * @brief I quattro passi del core safe e la logica di sicurezza pura.
+ */
+
+/**
+ * @defgroup flow_field Ruolo fieldbus
+ * @ingroup flow
+ * @brief Slave FSoE, campo simulato e merge delle due meta' del frame.
+ */
+
+/**
+ * @defgroup flow_platform Piattaforma
+ * @ingroup flow
+ * @brief Tick, tempo DWT, RNG, log e fatal del target i.MX94.
+ */
+
+/**
+ * @defgroup flow_selftest Selftest
+ * @ingroup flow
+ * @brief Prove KAT comuni e scambio ICC all'avvio.
+ */
+
+/**
+ * @defgroup board Board glue
+ * @brief Init comune delle app: SCMI, RTT, SysTick e attesa del debugger.
+ */
+
+/**
+ * @defgroup rtt RTT condiviso
+ * @brief Control block unico in OCRAM, un canale per core.
+ */
