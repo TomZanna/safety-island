@@ -12,6 +12,14 @@
 
 #include "flow_types.h"
 
+/** @brief Lega la MU18 al lato fisico del core safe.
+ *
+ * SAFE_A (M7_0) usa il lato B, SAFE_B (M7_1) il lato A: e' un vincolo
+ * hardware, per questo la mappa sta qui e non nel driver generico.
+ *
+ * @param[in] self ruolo del core.
+ * @note Un ruolo diverso dai due safe e' una condizione fatale.
+ */
 void safe_platform_init_mu18(flow_core_id_t self);
 
 #endif /* SI_SAFE_PLATFORM_H */

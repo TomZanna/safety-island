@@ -16,12 +16,18 @@
 #include "flow_platform.h"
 #include "flow_shm.h"
 
+/** @brief Tag di log del ruolo ("m70/A" o "m71/B").
+ *
+ * @param[in] safe stato del core.
+ * @return stringa statica del ruolo.
+ */
 static const char* safe_tag(const flow_safe_t* safe)
 {
   return flow_role_log_tag(safe->id);
 }
 
-FLOW_STATIC_ASSERT(FLOW_PDU_MAX == FSOEMASTER_FRAME_SIZE(FLOW_SAFE_DATA_SIZE),
+FLOW_STATIC_ASSERT(FLOW_PDU_MAX
+                       == (flow_u32)FSOEMASTER_FRAME_SIZE(FLOW_SAFE_DATA_SIZE),
                    "FLOW_PDU_MAX does not match the FSoE configuration");
 
 /* ------------------------------------------------------------- payload MU */
@@ -77,14 +83,23 @@ FLOW_STATIC_ASSERT(sizeof(safe_logic_message_t) <= FLOW_MU_PAYLOAD_MAX,
 
 /* ---------------------------------------------------------------- helpers */
 
-static const flow_u16 safe_app_parameters[2] = {(flow_u16)FLOW_APP_PARAMETER_1,
-                                                (flow_u16)FLOW_APP_PARAMETER_2};
-
+/** @brief Minimo fra due contatori.
+ *
+ * @param[in] a primo valore;
+ * @param[in] b secondo valore.
+ * @return il minore dei due.
+ */
 static flow_u32 safe_min(flow_u32 a, flow_u32 b)
 {
   return (a < b) ? a : b;
 }
 
+/** @brief Registra un'anomalia e porta il ciclo in fail-safe.
+ *
+ * @param[in,out] safe stato del core (incrementa `anomalies`, alza
+ *                     `cycle_fault`);
+ * @param[in]     what descrizione breve dell'anomalia (log RTT).
+ */
 static void safe_note_anomaly(flow_safe_t* safe, const char* what)
 {
   safe->anomalies++;
@@ -95,6 +110,13 @@ static void safe_note_anomaly(flow_safe_t* safe, const char* what)
                     what);
 }
 
+/** @brief Porta il contatore delle anomalie al massimo fra i due core.
+ *
+ * @param[in,out] safe stato del core;
+ * @param[in]     peer contatore comunicato dal peer.
+ * @note Serve a tenere i due core allineati sul numero di anomalie senza
+ *       riportare all'indietro un contatore gia' avanzato.
+ */
 static void safe_merge_anomalies(flow_safe_t* safe, flow_u32 peer)
 {
   if (peer > safe->anomalies) {
@@ -102,6 +124,11 @@ static void safe_merge_anomalies(flow_safe_t* safe, flow_u32 peer)
   }
 }
 
+/** @brief Chiede allo stack FSoE il reset della connessione.
+ *
+ * @param[in,out] safe stato del core;
+ * @param[in]     k    indice della connessione.
+ */
 static void safe_request_reset(flow_safe_t* safe, flow_u32 k)
 {
   if (fsoemaster_set_reset_request_flag(&safe->master[k])
@@ -112,6 +139,14 @@ static void safe_request_reset(flow_safe_t* safe, flow_u32 k)
   }
 }
 
+/** @brief Abilita o disabilita l'invio dei dati di processo, se cambia.
+ *
+ * @param[in,out] safe   stato del core;
+ * @param[in]     k      indice della connessione;
+ * @param[in]     enable nuovo stato richiesto.
+ * @note Il flag locale si aggiorna solo se lo stack accetta la richiesta:
+ *       cosi' il prossimo ciclo riprova.
+ */
 static void safe_set_sending(flow_safe_t* safe, flow_u32 k, bool enable)
 {
   fsoemaster_status_t status;
@@ -132,6 +167,12 @@ static void safe_set_sending(flow_safe_t* safe, flow_u32 k, bool enable)
   }
 }
 
+/** @brief Bit di stato della logica da cross-checkare con il peer.
+ *
+ * @param[in] logic stato della logica di una connessione.
+ * @return bit 0 = abilitato, bit 1 = fault latchato, bit 2 = discrepanza in
+ *         corso.
+ */
 static flow_u16 safe_logic_state_bits(const flow_safe_logic_t* logic)
 {
   flow_u16 bits = 0u;
@@ -149,9 +190,16 @@ static flow_u16 safe_logic_state_bits(const flow_safe_logic_t* logic)
   return bits;
 }
 
-/* Fault injection attivo solo nel ciclo richiesto (e solo con FLOW_DEBUG). Il
- * fault di SESSION si arma per la prossima negoziazione: quella avviene solo
- * quando la connessione riparte, non in un ciclo qualsiasi. */
+/** @brief Il fault injection richiesto vale per questo ciclo?
+ *
+ * Attivo solo nel ciclo richiesto e solo con FLOW_DEBUG. Il fault di SESSION si
+ * arma per la prossima negoziazione: quella avviene solo quando la connessione
+ * riparte, non in un ciclo qualsiasi.
+ *
+ * @param[in,out] safe stato del core (disarma il fault quando scatta);
+ * @param[in]     type tipo di fault da verificare.
+ * @return true se il fault va iniettato in questo ciclo.
+ */
 static bool safe_fault_active(flow_safe_t* safe, flow_test_fault_t type)
 {
 #if FLOW_DEBUG
@@ -192,6 +240,13 @@ void flow_safe_set_fault(flow_safe_t* safe,
 
 /* ------------------------------------------------------ passo 1: latch RX */
 
+/** @brief Latcha l'ultimo frame RX pubblicato dal FIELDBUS.
+ *
+ * Copia il frame nella RAM locale solo se il contatore del canale e' cambiato;
+ * uno slot non valido incrementa `rx_latch_failures` e lascia il precedente.
+ *
+ * @param[in,out] safe stato del core.
+ */
 static void safe_latch_rx(flow_safe_t* safe)
 {
   flow_u32 k;
@@ -224,6 +279,14 @@ static void safe_latch_rx(flow_safe_t* safe)
 
 /* ----------------------------------------------- passo 2: sync con lo stack */
 
+/** @brief Un passo dello stack FSoE master.
+ *
+ * Azzera gli ingressi grezzi, esegue `fsoemaster_sync_with_slave` e logga i
+ * cambi di stato e i reset. Un errore di sync lascia gli ingressi a zero: il
+ * ciclo successivo li tratta come non validi (fail-safe).
+ *
+ * @param[in,out] safe stato del core.
+ */
 static void safe_sync(flow_safe_t* safe)
 {
   flow_u32 k;
@@ -272,6 +335,15 @@ static void safe_sync(flow_safe_t* safe)
 /* ------------------------ passo 3: cross-check delle SafeInputs decodificate
  */
 
+/** @brief Riallinea i contatori TX/RX al MIN con il peer.
+ *
+ * Serve dopo un fault: i core non devono rigiocare frame vecchi, si
+ * risincronizzano sul punto comune piu' basso.
+ *
+ * @param[in,out] safe stato del core;
+ * @param[in]     k    indice della connessione;
+ * @param[in]     peer messaggio del peer (contatori).
+ */
 static void safe_realign_counters(flow_safe_t* safe,
                                   flow_u32 k,
                                   const safe_inputs_message_t* peer)
@@ -289,13 +361,21 @@ static void safe_realign_counters(flow_safe_t* safe,
   }
 }
 
+/** @brief Cross-check delle SafeInputs decodificate dai due core.
+ *
+ * Confronta ingressi, stato FSoE, contatori di mailbox e anomalie. Una
+ * divergenza svuota gli ingressi sicuri, disabilita l'invio e richiede il
+ * reset: il core non prosegue con dati non concordati.
+ *
+ * @param[in,out] safe stato del core.
+ */
 static void safe_crosscheck_inputs(flow_safe_t* safe)
 {
   flow_u32 k;
 
   for (k = 0u; k < FLOW_NUM_CONNECTIONS; k++) {
     safe_inputs_message_t message;
-    const safe_inputs_message_t* peer_message;
+    safe_inputs_message_t peer_message;
     flow_mu_message_t peer;
     bool match;
 
@@ -343,28 +423,30 @@ static void safe_crosscheck_inputs(flow_safe_t* safe)
       continue;
     }
 
-    peer_message = (const safe_inputs_message_t*)peer.payload;
-    safe_merge_anomalies(safe, peer_message->anomalies);
+    /* Copia nel tipo del messaggio invece di un cast del buffer: niente
+     * conversione fra puntatori a oggetti diversi (11.3). */
+    flow_memcpy(&peer_message, peer.payload, (flow_u32)sizeof(peer_message));
+    safe_merge_anomalies(safe, peer_message.anomalies);
 
-    if ((message.tx_index != peer_message->tx_index)
-        || (message.rx_index != peer_message->rx_index)
-        || (message.rx_fc != peer_message->rx_fc))
+    if ((message.tx_index != peer_message.tx_index)
+        || (message.rx_index != peer_message.rx_index)
+        || (message.rx_fc != peer_message.rx_fc))
     {
       safe->stats.inputs_mismatches++;
       flow_memset(&safe->safe_inputs[k], 0, sizeof(safe->safe_inputs[k]));
       safe_set_sending(safe, k, false);
       safe_note_anomaly(safe, "contatori SHMEM / frame RX divergenti");
       safe_request_reset(safe, k);
-      safe_realign_counters(safe, k, peer_message);
+      safe_realign_counters(safe, k, &peer_message);
       continue;
     }
 
     match =
-        (flow_memcmp(message.inputs, peer_message->inputs, FLOW_SAFE_DATA_SIZE)
+        (flow_memcmp(message.inputs, peer_message.inputs, FLOW_SAFE_DATA_SIZE)
          == 0)
-        && (message.flags == peer_message->flags)
-        && (message.state == peer_message->state)
-        && (message.anomalies == peer_message->anomalies);
+        && (message.flags == peer_message.flags)
+        && (message.state == peer_message.state)
+        && (message.anomalies == peer_message.anomalies);
 
     if (!match) {
       safe->stats.inputs_mismatches++;
@@ -387,6 +469,14 @@ static void safe_crosscheck_inputs(flow_safe_t* safe)
 
 /* ------------------- passo 4: logica safe e cross-check delle SafeOutputs */
 
+/** @brief Esegue la logica safe e ne fa il cross-check con il peer.
+ *
+ * Confronta lo stato della logica e le SafeOutputs dei due core; se coincidono
+ * e il ciclo non e' in fault le pubblica, altrimenti le azzera e disabilita
+ * l'invio.
+ *
+ * @param[in,out] safe stato del core.
+ */
 static void safe_run_logic(flow_safe_t* safe)
 {
   flow_u32 k;
@@ -394,7 +484,7 @@ static void safe_run_logic(flow_safe_t* safe)
   for (k = 0u; k < FLOW_NUM_CONNECTIONS; k++) {
     flow_safe_outputs_t next_outputs;
     safe_logic_message_t message;
-    const safe_logic_message_t* peer_message;
+    safe_logic_message_t peer_message;
     flow_mu_message_t peer;
     bool match;
 
@@ -430,14 +520,14 @@ static void safe_run_logic(flow_safe_t* safe)
       continue;
     }
 
-    peer_message = (const safe_logic_message_t*)peer.payload;
-    safe_merge_anomalies(safe, peer_message->anomalies);
+    flow_memcpy(&peer_message, peer.payload, (flow_u32)sizeof(peer_message));
+    safe_merge_anomalies(safe, peer_message.anomalies);
 
-    match = (peer_message->logic_state == message.logic_state)
+    match = (peer_message.logic_state == message.logic_state)
         && (flow_memcmp(
-                peer_message->outputs, message.outputs, FLOW_SAFE_DATA_SIZE)
+                peer_message.outputs, message.outputs, FLOW_SAFE_DATA_SIZE)
             == 0)
-        && (peer_message->anomalies == message.anomalies);
+        && (peer_message.anomalies == message.anomalies);
 
     if (!match) {
       safe->stats.logic_mismatches++;
@@ -494,7 +584,7 @@ void flow_safe_step(flow_safe_t* safe, flow_u32 cycle)
 flow_u16 flow_safe_on_session(flow_safe_t* safe, flow_u32 k)
 {
   safe_session_message_t message;
-  const safe_session_message_t* peer_message;
+  safe_session_message_t peer_message;
   flow_mu_message_t peer;
   flow_u16 random;
   flow_u16 session;
@@ -526,17 +616,17 @@ flow_u16 flow_safe_on_session(flow_safe_t* safe, flow_u32 k)
     return 0u;
   }
 
-  peer_message = (const safe_session_message_t*)peer.payload;
+  flow_memcpy(&peer_message, peer.payload, (flow_u32)sizeof(peer_message));
 
   /* Session ID = somma dei due numeri casuali: i due core devono arrivare allo
    * stesso valore (requisito 1oo2). */
-  session = (flow_u16)(random + peer_message->random);
+  session = (flow_u16)(random + peer_message.random);
   safe->session_id = session;
 
   flow_platform_log(safe_tag(safe),
                     "SESSION ID: 0x%04x + 0x%04x = 0x%04x",
                     (unsigned)random,
-                    (unsigned)peer_message->random,
+                    (unsigned)peer_message.random,
                     (unsigned)session);
 
   return session;
@@ -550,9 +640,9 @@ void flow_safe_on_egress(flow_safe_t* safe,
                          const void* buffer,
                          size_t size)
 {
-  const flow_u8* frame = (const flow_u8*)buffer;
+  flow_u8 frame[FLOW_PDU_MAX];
   safe_egress_message_t message;
-  const safe_egress_message_t* peer_message;
+  safe_egress_message_t peer_message;
   flow_mu_message_t peer;
   flow_u8 part[FLOW_PDU_MAX];
   flow_shm_slot_t stored;
@@ -560,12 +650,17 @@ void flow_safe_on_egress(flow_safe_t* safe,
   const bool crc_part = (safe->id == FLOW_SHM_CRC_NODE);
   flow_u32 index;
 
-  if ((k >= FLOW_NUM_CONNECTIONS) || (frame == NULL) || (len == 0u)
+  if ((k >= FLOW_NUM_CONNECTIONS) || (buffer == NULL) || (len == 0u)
       || (len > FLOW_PDU_MAX))
   {
     safe_note_anomaly(safe, "frame in uscita non valido");
     return;
   }
+
+  /* Copia locale del frame: il buffer arriva come void* dallo stack FSoE, cosi'
+   * si evita la conversione void* -> flow_u8* (11.5) e si ha una copia stabile
+   * per il cross-check e per lo split. */
+  flow_memcpy(frame, buffer, len);
 
   flow_memset(&message, 0, sizeof(message));
   message.k = (flow_u16)k;
@@ -594,13 +689,12 @@ void flow_safe_on_egress(flow_safe_t* safe,
     return;
   }
 
-  peer_message = (const safe_egress_message_t*)peer.payload;
-  safe_merge_anomalies(safe, peer_message->anomalies);
+  flow_memcpy(&peer_message, peer.payload, (flow_u32)sizeof(peer_message));
+  safe_merge_anomalies(safe, peer_message.anomalies);
 
-  if ((peer_message->len != message.len)
-      || (peer_message->rx_fc != message.rx_fc)
-      || (peer_message->anomalies != message.anomalies)
-      || (flow_memcmp(peer_message->pdu, message.pdu, len) != 0))
+  if ((peer_message.len != message.len) || (peer_message.rx_fc != message.rx_fc)
+      || (peer_message.anomalies != message.anomalies)
+      || (flow_memcmp(peer_message.pdu, message.pdu, len) != 0))
   {
     safe->stats.pdu_mismatches++;
     safe_note_anomaly(safe, "i due core hanno generato PDU diversi");
@@ -662,6 +756,11 @@ size_t flow_safe_on_recv(flow_safe_t* safe,
 
 void flow_safe_init(flow_safe_t* safe, flow_core_id_t id, flow_shm_t* shm)
 {
+  /* Parametri applicativi della connessione: costanti, usati solo qui (8.9).
+   * Hanno durata statica, quindi il puntatore passato allo stack resta valido.
+   */
+  static const flow_u16 app_parameters[2] = {(flow_u16)FLOW_APP_PARAMETER_1,
+                                             (flow_u16)FLOW_APP_PARAMETER_2};
   flow_u32 k;
 
   flow_memset(safe, 0, (flow_u32)sizeof(*safe));
@@ -676,7 +775,7 @@ void flow_safe_init(flow_safe_t* safe, flow_core_id_t id, flow_shm_t* shm)
         .slave_address = (uint16_t)(FLOW_SLAVE_ADDRESS + k),
         .connection_id = (uint16_t)(FLOW_CONNECTION_ID + k),
         .watchdog_timeout_ms = (uint16_t)FLOW_WATCHDOG_MS,
-        .application_parameters = safe_app_parameters,
+        .application_parameters = app_parameters,
         .application_parameters_size = FLOW_APP_PARAMETERS_SIZE,
         .outputs_size = FLOW_SAFE_DATA_SIZE,
         .inputs_size = FLOW_SAFE_DATA_SIZE,

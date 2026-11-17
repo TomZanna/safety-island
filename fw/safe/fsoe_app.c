@@ -45,6 +45,12 @@
 #include "flow_platform.h"
 #include "flow_safe.h"
 
+/** @brief Valida l'app_ref consegnato dallo stack FSoE.
+ *
+ * @param[in] app_ref puntatore opaco ricevuto dalle callback.
+ * @return riferimento concreto del ruolo safe.
+ * @note Magic o puntatore errati sono una condizione fatale (fail-safe).
+ */
 static safe_fsoe_ref_t* safe_ref(void* app_ref)
 {
   safe_fsoe_ref_t* ref = (safe_fsoe_ref_t*)app_ref;

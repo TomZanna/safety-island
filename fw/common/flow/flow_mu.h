@@ -64,12 +64,31 @@ typedef struct flow_mu_state
   flow_u16 rx_sequence[FLOW_MU_CHAN_COUNT][FLOW_MU_TAG_MAX];
 } flow_mu_state_t;
 
+/** @brief Inizializza lo stato delle sequenze e l'identita' del core.
+ *
+ * @param[out] state stato MU del core;
+ * @param[in]  self  ruolo del core (SAFE_A o SAFE_B).
+ */
 void flow_mu_init(flow_mu_state_t* state, flow_core_id_t self);
 
 /**
- * Pubblica un messaggio e attende quello del peer. Il messaggio ricevuto viene
- * verificato (magic, versione, CRC, routing, lunghezza, sequence) prima di
- * essere restituito.
+ * @brief Pubblica un messaggio e attende quello del peer.
+ *
+ * Il messaggio ricevuto viene verificato (magic, versione, CRC, routing,
+ * lunghezza, sequence) prima di essere restituito. La sequence e' indipendente
+ * da quella FSoE e il confronto e' wrap-aware.
+ *
+ * @param[in,out] state     sequenze TX/RX del core;
+ * @param[in]     channel   canale logico FLOW_MU_CHAN_*;
+ * @param[in]     tag       tag della connessione;
+ * @param[in]     cycle     ciclo a cui il messaggio appartiene;
+ * @param[in]     payload   payload da inviare (`length` byte, puo' essere NULL
+ *                          se `length` e' 0);
+ * @param[in]     length    lunghezza del payload (<= FLOW_MU_PAYLOAD_MAX);
+ * @param[out]    peer      messaggio verificato del peer;
+ * @param[in]     timeout_us attesa massima del peer in microsecondi.
+ * @return true solo se il peer ha risposto con un messaggio valido, del ciclo
+ *         atteso e con sequence piu' recente.
  */
 bool flow_mu_exchange(flow_mu_state_t* state,
                       flow_u8 channel,
@@ -80,6 +99,15 @@ bool flow_mu_exchange(flow_mu_state_t* state,
                       flow_mu_message_t* peer,
                       flow_u32 timeout_us);
 
+/** @brief Verifica un messaggio ricevuto senza usare lo stato del core.
+ *
+ * @param[in] message messaggio da verificare;
+ * @param[in] self    ruolo ricevente;
+ * @param[in] channel canale atteso;
+ * @param[in] tag     tag atteso;
+ * @param[in] cycle   ciclo atteso.
+ * @return true se magic, versione, CRC, routing, lunghezza e ciclo coincidono.
+ */
 bool flow_mu_verify(const flow_mu_message_t* message,
                     flow_core_id_t self,
                     flow_u8 channel,

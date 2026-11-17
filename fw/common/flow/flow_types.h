@@ -24,7 +24,6 @@ typedef int32_t flow_s32;
 
 #define FLOW_PACKED __attribute__((packed))
 #define FLOW_NORETURN __attribute__((noreturn))
-#define FLOW_UNUSED __attribute__((unused))
 #define FLOW_INLINE static inline
 
 #define FLOW_STATIC_ASSERT(condition, message) \

@@ -35,24 +35,42 @@
  * messaggio si perde. */
 #define LOG(...) rtt_printf(__VA_ARGS__)
 
-/** Init: canale RTT del core, canale SCMI con l'SM, SysTick a 1 kHz */
+/** @brief Init: canale RTT del core, canale SCMI con l'SM, SysTick a 1 kHz. */
 void board_init(void);
 
-/** Millisecondi da board_init() (SysTick) */
+/** @brief Millisecondi dall'avvio.
+ *
+ * @return tick di SysTick (1 kHz) da board_init().
+ */
 uint32_t board_millis(void);
 
-/** Carattere ricevuto via RTT (canale del core), o -1 se non ce n'e' (non
- * bloccante) */
+/** @brief Carattere ricevuto via RTT sul canale del core.
+ *
+ * @return carattere (0..255), oppure -1 se non ce n'e' (non bloccante).
+ */
 int board_getkey(void);
 
-/** Nome dell'agente SCMI di questo core secondo l'SM (es. "M7"), o "?" */
+/** @brief Nome dell'agente SCMI di questo core secondo l'SM.
+ *
+ * @return stringa dell'agente (es. "M7"), oppure "?" se non disponibile.
+ */
 const char* board_scmi_agent(void);
 
-/** Scritta a 1 dal debugger all'attach: sblocca l'attesa di WAIT_DEBUGGER */
+/** @brief Flag scritto a 1 dal debugger all'attach.
+ *
+ * Sblocca l'attesa opzionale di WAIT_DEBUGGER prima di main().
+ *
+ * @warning Deve restare nell'ELF: e' referenziata da SystemInitHook() in
+ *          board.c, e un attach SWD che non la trova non rilascia il core.
+ */
 extern volatile uint32_t g_debugger_go;
 
-/** Errore fatale: si ferma qui (breakpoint utile). what/status visibili dal
- * debugger. */
+/** @brief Errore fatale della board: si ferma qui.
+ *
+ * @param[in] what   codice dell'errore (visibile dal debugger);
+ * @param[in] status stato/errno associato.
+ * @note Non ritorna: breakpoint utile per l'analisi.
+ */
 void board_fault(uint32_t what, int32_t status) __attribute__((noreturn));
 
 #endif

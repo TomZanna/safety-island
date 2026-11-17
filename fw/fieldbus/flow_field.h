@@ -33,7 +33,7 @@ typedef struct field_fsoe_ref
 } field_fsoe_ref_t;
 
 /** @brief Stato del ruolo fieldbus (slave, campo simulato, contatori). */
-typedef struct flow_field
+struct flow_field
 {
   field_fsoe_ref_t ref[FLOW_NUM_CONNECTIONS];
   fsoeslave_t slave[FLOW_NUM_CONNECTIONS];
@@ -69,34 +69,84 @@ typedef struct flow_field
   bool enabled_seen;
   flow_u32 frames_ok;
   flow_u32 frames_dropped;
-} flow_field_t;
+};
 
+/** @brief Inizializza lo slave FSoE e il processo di campo simulato.
+ *
+ * @param[out] field         stato del ruolo fieldbus;
+ * @param[in]  slave_address indirizzo dello slave (la connessione k usa
+ *                           `slave_address + k`).
+ * @note Se `fsoeslave_init` fallisce il ruolo va in stato fatale.
+ */
 void flow_field_init(flow_field_t* field, flow_u16 slave_address);
 
-/** Frame del master da consegnare allo slave (uno per ciclo safe). */
+/** @brief Consegna allo slave il frame del master (uno per ciclo safe).
+ *
+ * @param[out] field stato del ruolo;
+ * @param[in]  pdu   frame assemblato dal lato A55;
+ * @param[in]  len   lunghezza del frame in byte.
+ */
 void flow_field_provide_rx(flow_field_t* field,
                            const flow_u8* pdu,
                            flow_u32 len);
 
-/** Un passo di campo + slave (2 ms). */
+/** @brief Un passo del processo di campo e dello slave FSoE.
+ *
+ * @param[in,out] field stato del ruolo (ingressi generati, uscite ricevute,
+ *                      contatori).
+ * @note Periodo 2 ms: mantiene vivo il watchdog FSoE del master.
+ */
 void flow_field_step(flow_field_t* field);
 
-/** Prende la risposta dello slave da pubblicare in mailbox. */
+/** @brief Preleva la risposta dello slave da pubblicare in mailbox.
+ *
+ * @param[in,out] field stato del ruolo;
+ * @param[out]    pdu   buffer di destinazione (FLOW_PDU_MAX byte);
+ * @param[out]    len   lunghezza della risposta.
+ * @return true se c'era una risposta pronta; false altrimenti.
+ */
 bool flow_field_take_tx(flow_field_t* field, flow_u8* pdu, flow_u32* len);
 
-/** Comandi da RTT. */
-void flow_field_set_discrepancy(flow_field_t* field, bool on);
+/** @brief Programma lo scarto di N frame (test del watchdog FSoE).
+ *
+ * @param[out] field  stato del ruolo;
+ * @param[in]  frames numero di frame da scartare prima di consegnarli allo
+ *                    slave.
+ */
 void flow_field_drop_frames(flow_field_t* field, flow_u32 frames);
 
-/** Callback dal glue FSoE. */
+/** @brief Callback di trasmissione: copia il frame generato dallo slave.
+ *
+ * @param[in,out] field  stato del ruolo;
+ * @param[in]     k      indice della connessione;
+ * @param[in]     buffer frame FSoE dello slave;
+ * @param[in]     size   lunghezza del frame.
+ */
 void flow_field_on_egress(flow_field_t* field,
                           flow_u32 k,
                           const void* buffer,
                           size_t size);
+
+/** @brief Callback di ricezione: consegna allo slave il frame del master.
+ *
+ * @param[in,out] field  stato del ruolo;
+ * @param[in]     k      indice della connessione;
+ * @param[out]    buffer buffer dello stack da riempire;
+ * @param[in]     size   capacita' di `buffer`.
+ * @return byte consegnati; 0 se non c'e' un frame o se va scartato (test del
+ *         watchdog).
+ */
 size_t flow_field_on_recv(flow_field_t* field,
                           flow_u32 k,
                           void* buffer,
                           size_t size);
+
+/** @brief Session ID dello slave (non fa parte della negoziazione 1oo2).
+ *
+ * @param[in,out] field stato del ruolo (avanza l'RNG deterministico);
+ * @param[in]     k     indice della connessione.
+ * @return Session ID generato.
+ */
 flow_u16 flow_field_on_session(flow_field_t* field, flow_u32 k);
 
 #endif /* SI_FLOW_FIELD_H */

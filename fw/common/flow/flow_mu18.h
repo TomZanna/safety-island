@@ -34,25 +34,58 @@
 
 #include "flow_types.h"
 
-/** Lega il driver al proprio lato (indirizzo base). 0 = nessun lato (fieldbus).
+/** @brief Lega il driver a un lato della MU18.
+ *
+ * @param[in] base indirizzo base del proprio lato (FLOW_MU18_A_BASE o
+ *                 FLOW_MU18_B_BASE); 0 = nessun lato (fieldbus).
  */
 void flow_mu18_bind(flow_u32 base);
 
-/** true se questo core ha un lato MU18 configurato. */
+/** @brief Questo core ha un lato MU18 configurato?
+ *
+ * @return true se flow_mu18_bind() e' gia' stato chiamato con un indirizzo.
+ */
 bool flow_mu18_available(void);
 
-/** Scrive due parole nel proprio lato (attende che TR0/TR1 siano liberi). */
+/** @brief Scrive due parole nel proprio lato della MU.
+ *
+ * @param[in] word0      TR0 (doorbell `{seq, tag, channel}`);
+ * @param[in] word1      TR1 (CRC-32 del payload);
+ * @param[in] timeout_us attesa massima che TR0/TR1 siano liberi.
+ * @return true se le due parole sono state scritte.
+ */
 bool flow_mu18_send(flow_u32 word0, flow_u32 word1, flow_u32 timeout_us);
 
-/** Legge due parole dal proprio lato quando sono arrivate (RF0/RF1). */
+/** @brief Legge due parole dal proprio lato quando sono arrivate.
+ *
+ * @param[out] word0      RF0;
+ * @param[out] word1      RF1;
+ * @param[in]  timeout_us attesa massima in microsecondi.
+ * @return true se le due parole sono state lette entro il timeout.
+ */
 bool flow_mu18_recv(flow_u32* word0, flow_u32* word1, flow_u32 timeout_us);
 
-/** Come recv ma senza attesa e senza toccare i contatori di timeout: serve ai
- * cicli (eco del doorbell, servizio della barrier). */
+/** @brief Come flow_mu18_recv(), ma senza attesa e senza contatori.
+ *
+ * Serve ai cicli (eco del doorbell, servizio della barrier): non deve alterare
+ * le statistiche dei timeout.
+ *
+ * @param[out] word0 RF0 (se non NULL);
+ * @param[out] word1 RF1 (se non NULL).
+ * @return true se un messaggio era disponibile.
+ */
 bool flow_mu18_poll(flow_u32* word0, flow_u32* word1);
 
-/** Round-trip di prova: invia `value` e attende il valore del peer. Usato dal
- * selftest di bring-up per validare il link MU18 fra M7_0 e M7_1. */
+/** @brief Round-trip di prova sul link MU18.
+ *
+ * Invia `value` e attende il valore del peer. Usato dal selftest di bring-up
+ * per validare il link fra M7_0 e M7_1.
+ *
+ * @param[in]  value      valore da inviare;
+ * @param[in]  timeout_us attesa massima in microsecondi;
+ * @param[out] peer_value valore ricevuto dal peer (se non NULL).
+ * @return true se il peer ha risposto entro il timeout.
+ */
 bool flow_mu18_ping(flow_u32 value, flow_u32 timeout_us, flow_u32* peer_value);
 
 /** Contatori diagnostici del link. */
@@ -64,6 +97,10 @@ typedef struct flow_mu18_stats
   flow_u32 rx_timeouts;
 } flow_mu18_stats_t;
 
+/** @brief Contatori diagnostici del link MU18.
+ *
+ * @return puntatore ai contatori interni (mai NULL); sola lettura.
+ */
 const flow_mu18_stats_t* flow_mu18_get_stats(void);
 
 #endif /* SI_FLOW_MU18_H */

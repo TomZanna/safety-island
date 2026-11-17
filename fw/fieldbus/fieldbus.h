@@ -11,7 +11,11 @@
 
 #include "flow_types.h"
 
-/** Non ritorna: ciclo infinito del core di campo. */
+/** @brief Punto di ingresso del core di campo: non ritorna.
+ *
+ * Inizializza mailbox e ICC (e' l'owner), poi esegue il ciclo infinito a 2 ms:
+ * apre il ciclo safe, serve lo slave FSoE e pubblica la risposta.
+ */
 void fieldbus_main(void) FLOW_NORETURN;
 
 #endif /* SI_FIELDBUS_H */

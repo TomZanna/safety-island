@@ -12,34 +12,71 @@
 #include "flow_config.h"
 #include "flow_types.h"
 
-/** Identita' del core che sta eseguendo: deve essere uno dei ruoli di
- * flow_types.h. Va chiamata prima di flow_platform_init(). */
+/** @brief Identita' del core che sta eseguendo.
+ *
+ * @param[in] core uno dei ruoli di flow_types.h.
+ * @pre Va chiamata prima di flow_platform_init() e di ogni log.
+ */
 void flow_platform_set_core(flow_core_id_t core);
 
-/** Inizializzazione una tantum (DWT, contatori, periodo del tick di ciclo). */
+/** @brief Inizializzazione una tantum della piattaforma.
+ *
+ * @param[in] cycle_ms periodo del tick di ciclo del ruolo.
+ */
 void flow_platform_init(flow_u32 cycle_ms);
 
-/** Attende il prossimo tick di ciclo del ruolo corrente (10 ms safe, 2 ms
- * fieldbus). Ritorna false se la piattaforma si sta spegnendo. */
+/** @brief Attende il prossimo tick di ciclo del ruolo corrente.
+ *
+ * @return false se la piattaforma si sta spegnendo (uscita dal loop).
+ * @note 10 ms per i core safe, 2 ms per il fieldbus.
+ */
 bool flow_platform_tick_wait(void);
 
-/** Tempo monotono in microsecondi (DWT), usato dal watchdog FSoE e dai timeout.
- * Sorgente indipendente dal tick: nessuna causa comune. */
+/** @brief Tempo monotono in microsecondi.
+ *
+ * Sorgente indipendente dal tick (DWT->CYCCNT): watchdog FSoE e timeout non
+ * hanno una causa comune con il ciclo.
+ *
+ * @return microsecondi dall'avvio (a 32 bit, con wrap).
+ */
 flow_u32 flow_platform_time_us(void);
 
-/** Numero casuale per la negoziazione del Session ID. Con FLOW_BENCH_RNG=0 e'
- * fatale: nel build safety non esiste un ripiego pseudo-casuale. */
+/** @brief Numero casuale per la negoziazione del Session ID.
+ *
+ * @return valore del RNG di banco.
+ * @warning Con FLOW_BENCH_RNG=0 e' fatale: nel build safety non esiste un
+ *          ripiego pseudo-casuale.
+ */
 flow_u16 flow_platform_random_u16(void);
 
-/** Condizione fatale: uscite gia' a 0, si ferma qui (breakpoint/watchdog). */
+/** @brief Condizione fatale: uscite gia' a 0, ci si ferma qui.
+ *
+ * @note Non ritorna (breakpoint/watchdog).
+ */
 void flow_platform_fatal(void) FLOW_NORETURN;
 
+/** @brief Log su RTT del ruolo corrente.
+ *
+ * @param[in] tag    prefisso breve del ruolo;
+ * @param[in] format formato printf-like;
+ * @param[in] ...    argomenti del formato.
+ */
 void flow_platform_log(const char* tag, const char* format, ...)
     __attribute__((format(printf, 2, 3)));
 
-/** Trasporto dei messaggi di cross-check 1oo2 (flow_mu.c costruisce e verifica
- * sequenza, routing e CRC-32; qui c'e' solo il trasporto). `cycle` e' il ciclo
- * a cui il messaggio appartiene: chi riceve lo confronta con il proprio. */
+/** @brief Trasporto di un messaggio di cross-check 1oo2.
+ *
+ * flow_mu.c costruisce e verifica sequenza, routing e CRC-32: qui c'e' solo il
+ * trasporto (MU18 + payload ICC).
+ *
+ * @param[in] self    ruolo mittente;
+ * @param[in] channel canale logico;
+ * @param[in] tag     tag della connessione;
+ * @param[in] cycle   ciclo a cui il messaggio appartiene;
+ * @param[in] message messaggio da inviare;
+ * @param[in] size    dimensione del messaggio.
+ * @return true se il messaggio e' stato consegnato al trasporto.
+ */
 bool flow_platform_mu_post(flow_core_id_t self,
                            flow_u8 channel,
                            flow_u8 tag,
@@ -47,6 +84,17 @@ bool flow_platform_mu_post(flow_core_id_t self,
                            const void* message,
                            flow_u32 size);
 
+/** @brief Attende un messaggio di cross-check dal peer.
+ *
+ * @param[in]  self     ruolo ricevente;
+ * @param[in]  channel  canale logico;
+ * @param[in]  tag      tag della connessione;
+ * @param[in]  cycle    ciclo atteso;
+ * @param[out] message  buffer di destinazione;
+ * @param[in]  max_size capacita' di `message`;
+ * @param[in]  timeout_us attesa massima in microsecondi.
+ * @return true se un messaggio del ciclo atteso e' arrivato integro.
+ */
 bool flow_platform_mu_wait(flow_core_id_t self,
                            flow_u8 channel,
                            flow_u8 tag,
@@ -55,11 +103,22 @@ bool flow_platform_mu_wait(flow_core_id_t self,
                            flow_u32 max_size,
                            flow_u32 timeout_us);
 
-/** Servizio del watchdog esterno (oggi non abilitato). */
+/** @brief Servizio del watchdog esterno.
+ *
+ * @note Oggi non abilitato: il watchdog FSoE e' quello dello stack.
+ */
 void flow_platform_watchdog_kick(void);
 
-/** Contatori del tick di ciclo, per la telemetria su RTT. */
+/** @brief Contatori del tick di ciclo, per la telemetria su RTT.
+ *
+ * @return numero di tick eseguiti dall'avvio.
+ */
 flow_u32 flow_platform_cycles(void);
+
+/** @brief Tick persi (il ciclo non ha rispettato il periodo).
+ *
+ * @return numero di scatti di periodo persi dall'avvio.
+ */
 flow_u32 flow_platform_tick_slips(void);
 
 #endif /* SI_FLOW_PLATFORM_H */

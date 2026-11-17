@@ -26,6 +26,12 @@ void flow_selftest_check(const char* name, bool ok)
   flow_platform_log("selftest", "%-24s %s", name, ok ? "PASS" : "FAIL");
 }
 
+/** @brief Esegue una prova e ne registra l'esito.
+ *
+ * @param[in] name nome della prova;
+ * @param[in] ok   esito.
+ * @post Un fallimento resta latchato in `s_failed` fino al prossimo run.
+ */
 static void check(const char* name, bool ok)
 {
   flow_selftest_check(name, ok);
@@ -34,7 +40,7 @@ static void check(const char* name, bool ok)
   }
 }
 
-/* CRC-32/ISO-HDLC e CRC-16/CCITT-FALSE sui vettori noti "123456789". */
+/** @brief CRC-32/ISO-HDLC e CRC-16/CCITT-FALSE sui vettori noti "123456789". */
 static void test_crc(void)
 {
   static const char vector[] = "123456789";
@@ -43,8 +49,12 @@ static void test_crc(void)
   check("crc16 vector", flow_crc16(vector, 9u) == 0x29B1u);
 }
 
-/* Split/assemble del frame FSoE: nessuna delle due meta' e' un frame valido, e
- * l'assemblaggio deve restituire esattamente l'originale. */
+/** @brief Split/assemble del frame FSoE (frame da 11 e da 6 byte).
+ *
+ * Nessuna delle due meta' e' un frame valido e l'assemblaggio deve restituire
+ * esattamente l'originale; una corruzione nella propria meta' deve essere
+ * vista, una nell'altra no.
+ */
 static void test_split(void)
 {
   const flow_u8 frame11[FLOW_PDU_MAX] = {0x35u,
@@ -95,8 +105,11 @@ static void test_split(void)
   check("split/assemble 6B", ok);
 }
 
-/* Finestra OCRAM condivisa: se il TRDC/DID non la concede, il core prende un
- * fault qui (e non a meta' del ciclo FSoE). */
+/** @brief Finestra OCRAM condivisa scrivibile e leggibile.
+ *
+ * Se il TRDC/DID non la concede, il core prende un fault qui (e non a meta' del
+ * ciclo FSoE). Verifica anche che le due finestre siano aree distinte.
+ */
 static void test_ocram(void)
 {
   volatile flow_u32* shm_probe = (volatile flow_u32*)PROBE_SHM_ADDR;

@@ -13,6 +13,11 @@
 /* Unico ruolo che esegue il campo: il tag non dipende dal build. */
 #define FIELD_TAG "fld"
 
+/** @brief Prossimo valore dello xorshift deterministico del campo.
+ *
+ * @param[in,out] field stato del ruolo (avanza il seed).
+ * @return nuovo valore pseudo-casuale.
+ */
 static flow_u32 field_next_random(flow_field_t* field)
 {
   flow_u32 x = field->rng;
@@ -65,9 +70,15 @@ void flow_field_init(flow_field_t* field, flow_u16 slave_address)
                     (unsigned)FLOW_SAFE_DATA_SIZE);
 }
 
-/* Processo di campo casuale: cambia stato ogni ~500 ms con un bias verso
- * "macchina in marcia" e da' un impulso di reset quando le condizioni di
- * sicurezza sono soddisfatte (cosi' il 1oo2 arriva a ENABLE). */
+/** @brief Genera il processo di campo simulato e gli ingressi di sicurezza.
+ *
+ * Cambia stato ogni ~500 ms con un bias verso "macchina in marcia" e da' un
+ * impulso di reset quando le condizioni di sicurezza sono soddisfatte (cosi' il
+ * 1oo2 arriva a ENABLE). Con `inject_discrepancy` il canale B diverge di
+ * proposito.
+ *
+ * @param[in,out] field stato del ruolo.
+ */
 static void field_generate(flow_field_t* field)
 {
   field->bus_cycles++;
@@ -84,6 +95,8 @@ static void field_generate(flow_field_t* field)
   } else if (!field->reset_given) {
     field->reset_given = true;
     field->reset_window = 60u; /* ~120 ms di impulso */
+  } else {
+    /* Reset gia' in corso: la finestra scorre sotto, niente da fare. */
   }
 
   if (field->reset_window > 0u) {
@@ -173,11 +186,6 @@ bool flow_field_take_tx(flow_field_t* field, flow_u8* pdu, flow_u32* len)
   field->tx_ready = false;
 
   return true;
-}
-
-void flow_field_set_discrepancy(flow_field_t* field, bool on)
-{
-  field->inject_discrepancy = on;
 }
 
 void flow_field_drop_frames(flow_field_t* field, flow_u32 frames)

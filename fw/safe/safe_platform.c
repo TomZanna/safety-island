@@ -21,5 +21,6 @@ void safe_platform_init_mu18(flow_core_id_t self)
       break;
     default:
       flow_platform_fatal();
+      break;
   }
 }

@@ -19,8 +19,12 @@
 static flow_icc_t* const s_icc = (flow_icc_t*)FLOW_ICC_BASE_ADDR;
 static flow_icc_stats_t s_stats;
 static flow_u16 s_tx_sequence[FLOW_ICC_DIRS][FLOW_MU_CHAN_COUNT];
-static flow_u32 s_cycle_seen;
 
+/** @brief Direzione dello slot ICC per un mittente.
+ *
+ * @param[in] sender SAFE_A o SAFE_B.
+ * @return 0 se il mittente e' SAFE_A, altrimenti 1.
+ */
 static flow_u32 icc_dir_of(flow_core_id_t sender)
 {
   return (sender == FLOW_CORE_SAFE_A) ? 0u : 1u;
@@ -81,7 +85,8 @@ bool flow_icc_post(flow_core_id_t self,
   dir = icc_dir_of(self);
   slot = &s_icc->slot[dir][channel];
 
-  sequence = (flow_u16)(++s_tx_sequence[dir][channel]);
+  s_tx_sequence[dir][channel]++;
+  sequence = (flow_u16)s_tx_sequence[dir][channel];
   crc = flow_crc32(payload, length);
 
   /* Payload prima, `seq` per ultimo con release: chi vede il nuovo seq vede
@@ -173,13 +178,15 @@ bool flow_icc_wait(flow_core_id_t self,
 
 bool flow_icc_cycle_wait(flow_u32* cycle, flow_u32 timeout_us)
 {
+  /* Ultimo ciclo visto da questo ruolo: stato privato della funzione (8.9). */
+  static flow_u32 cycle_seen;
   const flow_u32 start = flow_platform_time_us();
 
   for (;;) {
     const flow_u32 current = ICC_ACQUIRE(&s_icc->cycle);
 
-    if (current != s_cycle_seen) {
-      s_cycle_seen = current;
+    if (current != cycle_seen) {
+      cycle_seen = current;
       if (cycle != NULL) {
         *cycle = current;
       }
@@ -204,6 +211,7 @@ bool flow_icc_cycle_release(flow_u32 cycle, flow_u32 timeout_us)
 {
   const flow_u32 start = flow_platform_time_us();
   bool ok = true;
+  bool done = false;
 
   /* Fase di avvio: finche' i due core safe non hanno completato un ciclo il
    * numero di ciclo NON avanza. Altrimenti il fieldbus lo farebbe correre
@@ -218,21 +226,20 @@ bool flow_icc_cycle_release(flow_u32 cycle, flow_u32 timeout_us)
 
   /* Attende i due core safe. Su timeout si apre comunque il ciclo successivo:
    * chi e' vivo lo rileva dal cross-check e va in fail-safe, senza che un core
-   * morto blocchi tutto. */
-  for (;;) {
+   * morto blocchi tutto. `done` chiude il loop sia quando i due core sono
+   * pronti sia allo scadere del timeout: nessun break (15.4) e differenza
+   * calcolata in signed dopo il cast dei due operandi (10.8). */
+  while (!done) {
     const flow_u32 ready_a = ICC_ACQUIRE(&s_icc->ready[FLOW_CORE_SAFE_A]);
     const flow_u32 ready_b = ICC_ACQUIRE(&s_icc->ready[FLOW_CORE_SAFE_B]);
 
-    if (((flow_s32)(ready_a - cycle) >= 0)
-        && ((flow_s32)(ready_b - cycle) >= 0))
-    {
-      break;
-    }
+    done = (((flow_s32)ready_a - (flow_s32)cycle) >= 0)
+        && (((flow_s32)ready_b - (flow_s32)cycle) >= 0);
 
-    if ((flow_u32)(flow_platform_time_us() - start) >= timeout_us) {
+    if (!done && ((flow_u32)(flow_platform_time_us() - start) >= timeout_us)) {
       s_stats.barrier_timeouts++;
       ok = false;
-      break;
+      done = true;
     }
   }
 

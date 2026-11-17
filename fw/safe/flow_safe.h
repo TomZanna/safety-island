@@ -62,7 +62,7 @@ typedef enum flow_test_fault
 
 /** @brief Stato completo di un core safe (stack, mailbox, cross-check,
  * statistiche). */
-typedef struct flow_safe
+struct flow_safe
 {
   flow_core_id_t id;
   flow_shm_t* shm;
@@ -105,27 +105,73 @@ typedef struct flow_safe
     flow_u32 rx_latch_failures;
     flow_u32 session_requests;
   } stats;
-} flow_safe_t;
+};
 
+/** @brief Inizializza lo stato del core safe e gli stack FSoE master.
+ *
+ * @param[out] safe stato del core;
+ * @param[in]  id   identita' del ruolo (SAFE_A su m70, SAFE_B su m71);
+ * @param[out] shm  mailbox condivisa di cui il core pubblica la propria meta'.
+ * @note Se `fsoemaster_init` fallisce il core va in stato fatale (fail-safe).
+ */
 void flow_safe_init(flow_safe_t* safe, flow_core_id_t id, flow_shm_t* shm);
 
-/** Un ciclo completo (passi 1..4). `cycle` viene dalla barrier. */
+/** @brief Un ciclo completo: latch RX, sync FSoE, cross-check, logica safe.
+ *
+ * @param[in,out] safe  stato del core;
+ * @param[in]     cycle ciclo aperto dalla barrier del FIELDBUS.
+ * @note I quattro passi sono descritti in flow_safe.h; ogni anomalia porta al
+ *       fail-safe del ciclo, senza attendere il ciclo successivo.
+ */
 void flow_safe_step(flow_safe_t* safe, flow_u32 cycle);
 
-/** Fault injection: vale sul ciclo `fault_cycle`, poi si azzera. */
+/** @brief Arma un fault injection per il ciclo indicato.
+ *
+ * @param[out] safe        stato del core;
+ * @param[in]  fault       tipo di fault da iniettare;
+ * @param[in]  fault_cycle ciclo in cui vale (0 = non armato; SESSION vale per
+ *                         la prossima negoziazione).
+ * @note Attivo solo con FLOW_DEBUG; si azzera dopo l'uso.
+ */
 void flow_safe_set_fault(flow_safe_t* safe,
                          flow_test_fault_t fault,
                          flow_u32 fault_cycle);
 
-/** Callback usate dal glue FSoE. */
+/** @brief Callback di trasmissione: cross-check del PDU e pubblicazione.
+ *
+ * @param[in,out] safe   stato del core;
+ * @param[in]     k      indice della connessione;
+ * @param[in]     buffer frame FSoE generato dallo stack;
+ * @param[in]     size   lunghezza del frame.
+ * @note Pubblica solo la propria meta' del frame: l'assemblaggio lo fa il
+ *       FIELDBUS.
+ */
 void flow_safe_on_egress(flow_safe_t* safe,
                          flow_u32 k,
                          const void* buffer,
                          size_t size);
+
+/** @brief Callback di ricezione: consegna il frame RX latched allo stack.
+ *
+ * @param[in,out] safe   stato del core;
+ * @param[in]     k      indice della connessione;
+ * @param[out]    buffer buffer dello stack da riempire;
+ * @param[in]     size   capacita' di `buffer`.
+ * @return byte consegnati; 0 se non c'e' un frame nuovo o la taglia non
+ *         coincide.
+ */
 size_t flow_safe_on_recv(flow_safe_t* safe,
                          flow_u32 k,
                          void* buffer,
                          size_t size);
+
+/** @brief Negozia il Session ID con il peer (somma dei due numeri casuali).
+ *
+ * @param[in,out] safe stato del core;
+ * @param[in]     k    indice della connessione.
+ * @return Session ID concordato; 0 se la negoziazione fallisce (il chiamante
+ *         richiede un reset).
+ */
 flow_u16 flow_safe_on_session(flow_safe_t* safe, flow_u32 k);
 
 #endif /* SI_FLOW_SAFE_H */

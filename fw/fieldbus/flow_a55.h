@@ -39,15 +39,42 @@ typedef struct flow_a55
   flow_u32 invalid_frames;
 } flow_a55_t;
 
+/** @brief Inizializza il lato A55 della mailbox.
+ *
+ * @param[out] a55 stato del merge;
+ * @param[out] shm mailbox condivisa (puo' essere NULL: il ruolo resta
+ * inattivo).
+ * @post `last_delivered[k]` parte dal MIN dei due contatori gia' pubblicati.
+ */
 void flow_a55_init(flow_a55_t* a55, flow_shm_t* shm);
 
-/** Prossimo frame completo (MIN dei due contatori + interleave delle due
- * meta'). */
+/** @brief Prossimo frame completo da consegnare allo slave FSoE.
+ *
+ * Usa `MIN(count_CRC, count_dati)`: il frame e' completo solo quando entrambi i
+ * core hanno pubblicato la stessa index. Le due meta' vengono unite con
+ * flow_shm_assemble().
+ *
+ * @param[in,out] a55        stato del merge;
+ * @param[in]     connection indice della connessione;
+ * @param[out]    frame      frame assemblato (valido solo se il ritorno e' OK).
+ * @return FLOW_A55_OK se c'e' un frame nuovo, FLOW_A55_NO_DATA se non c'e'
+ *         niente di nuovo, FLOW_A55_INVALID su argomenti o slot non validi.
+ */
 flow_a55_result_t flow_a55_get_tx(flow_a55_t* a55,
                                   flow_u32 connection,
                                   flow_a55_frame_t* frame);
 
-/** Pubblica la risposta del campo nella mailbox RX (una per ciclo safe). */
+/** @brief Pubblica la risposta del campo nella mailbox RX.
+ *
+ * @param[out] a55        stato del merge;
+ * @param[in]  connection indice della connessione;
+ * @param[in]  pdu        frame di risposta dello slave;
+ * @param[in]  len        lunghezza del frame in byte.
+ * @return FLOW_A55_OK se pubblicato, FLOW_A55_INVALID su argomenti o taglia non
+ *         validi.
+ * @note Una RX per ciclo safe: la risposta si pubblica prima di aprire il ciclo
+ *       successivo.
+ */
 flow_a55_result_t flow_a55_put_rx(flow_a55_t* a55,
                                   flow_u32 connection,
                                   const flow_u8* pdu,

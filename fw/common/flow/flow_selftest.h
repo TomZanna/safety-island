@@ -16,11 +16,20 @@
 
 #include "flow_types.h"
 
-/** Esegue tutte le prove comuni, logga ogni voce su RTT e ritorna true se sono
- * passate. */
+/** @brief Esegue tutte le prove comuni (CRC, split/assemble, OCRAM).
+ *
+ * @param[in] self ruolo del core (solo per il log).
+ * @return true se tutte le prove sono passate; false al primo fallimento
+ *         registrato.
+ */
 bool flow_selftest_run(flow_core_id_t self);
 
-/** Logga PASS/FAIL di una prova: la usano anche i selftest di ruolo. */
+/** @brief Logga PASS/FAIL di una prova.
+ *
+ * @param[in] name nome della prova;
+ * @param[in] ok   esito.
+ * @note La usano anche i selftest di ruolo (es. scambio ICC dei core safe).
+ */
 void flow_selftest_check(const char* name, bool ok);
 
 #endif /* SI_FLOW_SELFTEST_H */

@@ -44,10 +44,20 @@ typedef struct flow_safe_logic
   flow_u32 cycles; /**< cicli eseguiti (telemetria) */
 } flow_safe_logic_t;
 
-/** Azzera lo stato, latch compreso. */
+/** @brief Azzera lo stato della logica, latch compreso.
+ *
+ * @param[out] logic stato della logica di una connessione.
+ */
 void flow_safe_logic_init(flow_safe_logic_t* logic);
 
-/** Esegue un ciclo: 1oo2 sui due canali, latch su discrepanza, reset su fronte.
+/** @brief Un ciclo di logica safe: 1oo2, latch su discrepanza, reset su fronte.
+ *
+ * @param[in]     inputs  ingressi decodificati dal frame FSoE;
+ * @param[in,out] logic   stato (abilitazione, latch, fronte del reset);
+ * @param[out]    outputs uscite calcolate: enable 0 se le condizioni non sono
+ *                        soddisfatte.
+ * @note Funzione pura: niente tempo, I/O o casualita', cosi' i due core
+ *       producono lo stesso risultato a parita' di ingressi.
  */
 void flow_safe_logic_step(const flow_safe_inputs_t* inputs,
                           flow_safe_logic_t* logic,

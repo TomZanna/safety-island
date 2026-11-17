@@ -14,6 +14,12 @@
 #include "flow_fsoe_app.h"
 #include "flow_platform.h"
 
+/** @brief Valida l'app_ref consegnato dallo stack FSoE.
+ *
+ * @param[in] app_ref puntatore opaco ricevuto dalle callback.
+ * @return riferimento concreto del ruolo fieldbus.
+ * @note Magic o puntatore errati sono una condizione fatale (fail-safe).
+ */
 static field_fsoe_ref_t* field_ref(void* app_ref)
 {
   field_fsoe_ref_t* ref = (field_fsoe_ref_t*)app_ref;

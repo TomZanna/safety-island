@@ -29,8 +29,11 @@
 
 /** Dimensione della PDU FSoE, ETG.5100 ch. 8.1.1: 11 byte con 4 byte di dati.
  */
+/* Parentesi esplicite su ogni operando: MISRA 12.1 (precedenza resa
+ * esplicita) e nessuna sorpresa quando la macro viene usata in un'altra
+ * espressione. */
 #define FLOW_FSOE_PDU_SIZE(data_size) \
-  (((data_size) == 1u) ? 6u : (2u * (data_size) + 3u))
+  ((((data_size) == 1u)) ? (6u) : (((2u * (data_size)) + 3u)))
 #define FLOW_PDU_MAX FLOW_FSOE_PDU_SIZE(FLOW_SAFE_DATA_SIZE)
 #define FLOW_PDU_MIN 6u
 
@@ -119,7 +122,5 @@
 
 /** Ruolo che pubblica la meta' CRC del frame: lo definisce flow_shm_api.h
  * (FLOW_SHM_CRC_NODE = nodo SAFE_A, l'altro pubblica la meta' dati). */
-
-#define FLOW_ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 #endif /* SI_FLOW_CONFIG_H */

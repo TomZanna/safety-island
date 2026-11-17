@@ -101,7 +101,7 @@ fw/<app> o M*_BIN  ──┘                                                    
 | `docs` / `docs-serve` | `build/<preset>/docs/html/index.html` con Doxygen; `docs-serve` = server locale su `DOCS_PORT` |
 | `format` / `format-check` | `clang-format` sui sorgenti `fw/` (esclusa la libreria FSoE); `format-check` non modifica |
 | `lint` / `lint-fix` | `clang-tidy` sul `compile_commands.json`; `lint-fix` applica i fix, da rivedere |
-| `misra` / `misra-check` | `cppcheck --addon=misra` (MISRA C:2012, **non certificato**): report o gate |
+| `misra` / `misra-check` | `cppcheck --addon=misra` (MISRA C:2012, **non certificato**): report, o gate che fallisce su finding nuovi e su deviazioni obsolete della baseline |
 | `check` / `check-misra` | precheck tool + format-check + lint + report MISRA; `check-misra` include il gate MISRA |
 | `docker-image` | `image` dentro un container (preset `docker`, senza `fw/`, output in `build/docker/`) |
 | `clean` / `distclean` / `clean-all` | pulizia (solo `make`, senza riconfigurare): build del preset corrente / tutti i build / anche `ext/` e `.west/`. Le prime due non richiedono rete |

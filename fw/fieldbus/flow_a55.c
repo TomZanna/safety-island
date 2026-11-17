@@ -10,6 +10,12 @@
 
 #include "flow_mem.h"
 
+/** @brief Minimo fra due contatori di frame.
+ *
+ * @param[in] a primo contatore;
+ * @param[in] b secondo contatore.
+ * @return il minore dei due.
+ */
 static flow_u32 a55_min(flow_u32 a, flow_u32 b)
 {
   return (a < b) ? a : b;

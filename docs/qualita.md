@@ -30,7 +30,7 @@ dove sono dichiarate le versioni minime:
 | `lint` | `clang-tidy` sul `compile_commands.json` delle app |
 | `lint-fix` | applica i fix di clang-tidy; da rivedere a mano |
 | `misra` | genera `build/<preset>/reports/misra.txt` (report, non fallisce) |
-| `misra-check` | fallisce sulle violazioni MISRA non soppresse |
+| `misra-check` | fallisce su finding nuovi o deviazioni obsolete |
 | `check` | precheck tool + `format-check` + `lint` + report MISRA |
 | `check-misra` | come `check`, ma anche `misra-check` |
 
@@ -91,14 +91,35 @@ cppcheck --project=build/<preset>/compile_commands.json \
   --file-filter='fw/*' -i fw/common/fsoe -i ext -i build \
   --platform=unix32 --std=c11 --enable=style --addon=misra \
   --suppress=missingIncludeSystem --inline-suppr \
-  --suppressions-list=quality/misra-suppressions.txt \
-  --error-exitcode=1 --output-file=build/<preset>/reports/misra.txt
+  --template='{file}:{line}:{column}: {severity}: {id}: {message}' \
+  --output-file=build/<preset>/reports/misra.txt
 ```
+
+Un solo passaggio, **senza** `--suppressions-list`: il report contiene tutti i
+finding, anche quelli gia' accettati. Poi `scripts/misra_check.py` confronta il
+report con la baseline `quality/misra-suppressions.txt`:
+
+| Situazione | Esito di `misra-check` |
+|---|---|
+| finding non in baseline | regressione: esce 1, stampa `file:linea` e la riga di codice |
+| riga di baseline senza finding | deviazione **obsoleta** (il codice e' cambiato): esce 1 |
+| insiemi uguali | verde, con il riepilogo per regola |
+
+Il confronto nei due sensi evita che la baseline "derivi" in silenzio: se il
+codice cambia, la riga va rivalutata, non copiata.
 
 - `--platform=unix32` approssima i 32 bit del Cortex-M; se i finding sono
   troppo sensibili a `sizeof`, si aggiunge un platform XML ARM.
-- `quality/misra-suppressions.txt` e' la baseline: ogni riga ha un motivo e
-  un riferimento alla review. Vietato sopprimere interi file o categorie.
+- `--project` e' relativo alla radice del repo: report e baseline usano path
+  relativi (`fw/...`), leggibili e confrontabili.
+- `quality/misra-suppressions.txt` e' la baseline, raggruppata **per regola**:
+  ogni blocco dice cosa chiede la regola (con la categoria: Mandatory,
+  Required, Advisory), perche' la deviazione e' accettata e come e' limitata.
+  Il formato delle righe resta `<id>:<file>:<line>` (lo impone cppcheck);
+  vietato sopprimere interi file o categorie.
+- La baseline accetta solo cio' che non si puo' correggere: codice vendored
+  (`fw/common/fsoe/`), vincoli architetturali (es. 15.5, single exit contro
+  fail-safe) e limiti del checker (es. 17.3 con i builtin `__atomic_*`).
 - `misra` e' report-only; `misra-check` e' il gate. In fase di
   certificazione serviranno un checker qualificato e la tool qualification.
 
@@ -106,7 +127,14 @@ cppcheck --project=build/<preset>/compile_commands.json \
 
 - MISRA non e' certificato; `clang-tidy` non ha check MISRA (`cert-*` e'
   CERT C, non MISRA).
-- Non si analizzano `fw/common/fsoe/`, SDK, `sm/`, `ele/`, script e CMake.
+- Non si analizzano i **sorgenti** di `fw/common/fsoe/`, l'SDK, `sm/`, `ele/`,
+  script e CMake. Gli **header** della libreria FSoE vengono pero' inclusi dai
+  nostri TU: i finding che nascono li' (union, macro non usate) sono riportati
+  e accettati riga per riga in baseline, perche' la libreria non si modifica
+  (AGENTS.md).
+- L'addon implementa anche regole introdotte dagli amendment (es. 21.16), che
+  non compaiono nell'edizione 2012 base: per quelle il riferimento va cercato
+  nella documentazione MISRA aggiornata, non nel PDF base.
 - Il lint e' statico sul codice C; non sostituisce i test in board, il
   fault injection e le misure di WCET/stack.
 - La formattazione dipende dalla versione di clang-format: il warning di
@@ -119,4 +147,6 @@ Due limiti pratici, voluti:
   `-Wall -Wextra` nel build firmware.
 - cppcheck non conosce i builtin atomics (`__ATOMIC_*`) usati da
   `flow_icc.c`/`flow_shm.c`: `misra-config` e' soppresso e il report MISRA
-  puo' avere falsi negativi su quelle espressioni.
+  puo' avere falsi negativi su quelle espressioni. Gli stessi builtin fanno
+  scattare 17.3 (falsa dichiarazione implicita): le righe sono in baseline con
+  il motivo, il build reale con `-Wall -Wextra` e' pulito.

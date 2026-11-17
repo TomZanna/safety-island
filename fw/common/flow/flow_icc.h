@@ -85,15 +85,41 @@ typedef struct flow_icc_stats
   flow_u32 barrier_timeouts;
 } flow_icc_stats_t;
 
-/** Owner (FIELDBUS): azzera la zona e pubblica il magic. Gli altri ruoli non
- * scrivono niente qui. */
+/** @brief Inizializza la zona ICC e ne pubblica il magic.
+ *
+ * @param[in] self ruolo chiamante: solo FIELDBUS e' owner, gli altri ruoli
+ *                 escono senza scrivere niente.
+ * @post `cycle = 1` e `magic` pubblicato con release.
+ */
 void flow_icc_init(flow_core_id_t self);
 
+/** @brief La zona ICC e' inizializzata e visibile a questo core?
+ *
+ * @return true se il magic letto con acquire e' quello atteso.
+ */
 bool flow_icc_ready(void);
+
+/** @brief Attende che la zona ICC sia pronta, con timeout.
+ *
+ * @param[in] timeout_us attesa massima in microsecondi.
+ * @return true se la zona diventa pronta entro il timeout.
+ */
 bool flow_icc_wait_ready(flow_u32 timeout_us);
 
-/** Pubblica `length` byte verso il peer (solo fra SAFE_A e SAFE_B) e suona il
- * doorbell MU18. */
+/** @brief Pubblica un messaggio verso il peer e suona il doorbell MU18.
+ *
+ * Il payload va nello slot OCRAM, la MU18 porta solo `{seq, tag, channel}` e
+ * il CRC-32 del payload: due mezzi fisici indipendenti devono concordare.
+ *
+ * @param[in] self        ruolo mittente (SAFE_A o SAFE_B);
+ * @param[in] destination peer logico (oggi ignorato: c'e' un solo peer);
+ * @param[in] channel     canale logico FLOW_MU_CHAN_*;
+ * @param[in] tag         tag della connessione;
+ * @param[in] cycle       ciclo a cui il messaggio appartiene;
+ * @param[in] payload     messaggio MU completo, `length` byte;
+ * @param[in] length      lunghezza del payload (<= FLOW_ICC_PAYLOAD_MAX).
+ * @return true se payload e doorbell sono stati pubblicati.
+ */
 bool flow_icc_post(flow_core_id_t self,
                    flow_core_id_t destination,
                    flow_u8 channel,
@@ -102,8 +128,23 @@ bool flow_icc_post(flow_core_id_t self,
                    const void* payload,
                    flow_u16 length);
 
-/** Attende il messaggio del peer per (channel, tag, cycle) e ne verifica seq,
- * CRC (doppio: OCRAM + MU) e lunghezza. */
+/** @brief Attende il messaggio del peer e lo verifica.
+ *
+ * Verifica doorbell (canale e tag), sequence, lunghezza, ciclo e CRC: quello
+ * ricalcolato sul payload OCRAM deve coincidere sia con lo slot sia con il CRC
+ * arrivato per MU.
+ *
+ * @param[in]  self       ruolo ricevente;
+ * @param[in]  source     peer logico (SAFE_A o SAFE_B);
+ * @param[in]  channel    canale logico FLOW_MU_CHAN_*;
+ * @param[in]  tag        tag della connessione;
+ * @param[in]  cycle      ciclo atteso;
+ * @param[out] payload    buffer di destinazione;
+ * @param[in]  max_length capacita' di `payload`;
+ * @param[out] length     byte ricevuti (se non NULL);
+ * @param[in]  timeout_us attesa massima in microsecondi.
+ * @return true solo se il messaggio e' del peer, del ciclo atteso e integro.
+ */
 bool flow_icc_wait(flow_core_id_t self,
                    flow_core_id_t source,
                    flow_u8 channel,
@@ -114,12 +155,44 @@ bool flow_icc_wait(flow_core_id_t self,
                    flow_u16* length,
                    flow_u32 timeout_us);
 
-/** Rendezvous di ciclo (vedi sopra). */
+/** @brief Attende che il FIELDBUS apra un ciclo nuovo.
+ *
+ * @param[out] cycle      numero del ciclo aperto (se non NULL);
+ * @param[in]  timeout_us attesa massima in microsecondi.
+ * @return true se il ciclo e' avanzato entro il timeout.
+ */
 bool flow_icc_cycle_wait(flow_u32* cycle, flow_u32 timeout_us);
+
+/** @brief Pubblica `ready[self] = cycle` quando il ruolo ha finito il ciclo.
+ *
+ * @param[in] self  ruolo che ha completato il ciclo;
+ * @param[in] cycle ciclo completato.
+ */
 void flow_icc_cycle_done(flow_core_id_t self, flow_u32 cycle);
+
+/** @brief Rendezvous a 3: attende i due core safe e apre il ciclo successivo.
+ *
+ * Il `cycle` lo scrive solo il FIELDBUS. Finche' i due core safe non hanno
+ * completato un ciclo il numero non avanza (gate d'avvio); al timeout il ciclo
+ * si apre comunque e chi e' vivo lo rileva dal cross-check.
+ *
+ * @param[in] cycle      ciclo corrente;
+ * @param[in] timeout_us attesa massima in microsecondi.
+ * @return false se il timeout e' scaduto prima che entrambi i core fossero
+ *         pronti (il ciclo viene comunque aperto).
+ */
 bool flow_icc_cycle_release(flow_u32 cycle, flow_u32 timeout_us);
 
+/** @brief Ciclo attualmente aperto dal FIELDBUS.
+ *
+ * @return numero di ciclo letto con acquire.
+ */
 flow_u32 flow_icc_cycle_current(void);
+
+/** @brief Contatori diagnostici del canale ICC.
+ *
+ * @return puntatore ai contatori interni (mai NULL); sola lettura.
+ */
 const flow_icc_stats_t* flow_icc_get_stats(void);
 
 #endif /* SI_FLOW_ICC_H */

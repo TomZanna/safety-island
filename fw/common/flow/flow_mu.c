@@ -12,6 +12,11 @@
 
 #define MU_SEQUENCE_HALF 0x8000u
 
+/** @brief CRC-32 del messaggio MU, con il campo crc azzerato.
+ *
+ * @param[in] message messaggio da proteggere/verificare.
+ * @return CRC-32 su header + payload (crc escluso).
+ */
 static flow_u32 mu_message_crc(const flow_mu_message_t* message)
 {
   flow_mu_message_t copy = *message;
@@ -21,7 +26,11 @@ static flow_u32 mu_message_crc(const flow_mu_message_t* message)
   return flow_crc32(&copy, (flow_u32)sizeof(copy));
 }
 
-/* L'altro core safe. Nel 1oo2 i due ruoli sono SAFE_A (m70) e SAFE_B (m71). */
+/** @brief Il peer di un core safe. Nel 1oo2 i ruoli sono SAFE_A e SAFE_B.
+ *
+ * @param[in] self SAFE_A o SAFE_B.
+ * @return l'altro ruolo safe.
+ */
 static flow_core_id_t mu_peer_of(flow_core_id_t self)
 {
   return (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
@@ -98,7 +107,8 @@ bool flow_mu_exchange(flow_mu_state_t* state,
   message.destination = mu_peer_of(state->self);
   message.tag = tag;
   message.cycle = cycle;
-  message.sequence = ++state->tx_sequence[channel][tag];
+  state->tx_sequence[channel][tag]++;
+  message.sequence = state->tx_sequence[channel][tag];
   message.length = length;
 
   if (length != 0u) {

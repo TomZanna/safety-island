@@ -46,19 +46,35 @@
 #  define RTT_CHANNEL 2U
 #endif
 
-/** Prepara il canale di questo core (e l'header comune). Da chiamare una volta
- * all'avvio. */
+/** @brief Prepara il canale RTT di questo core e l'header comune.
+ *
+ * @pre Va chiamata una volta all'avvio, prima di ogni log.
+ * @note Scrive solo i propri descrittori: non azzera i canali degli altri core.
+ */
 void rtt_init(void);
 
-/** Scrive n byte nel canale del core. Non blocca: se non c'e' spazio, il
- * messaggio intero si perde. */
+/** @brief Scrive n byte nel canale del core.
+ *
+ * @param[in] data byte da scrivere;
+ * @param[in] n    numero di byte.
+ * @note Non blocca: se non c'e' spazio il messaggio intero si perde (mai
+ *       righe spezzate).
+ */
 void rtt_write(const char* data, size_t n);
 
-/** printf nel canale del core (vsnprintf di newlib-nano, max 255 caratteri per
- * chiamata) */
+/** @brief printf nel canale del core.
+ *
+ * @param[in] fmt formato printf-like;
+ * @param[in] ... argomenti del formato.
+ * @return caratteri scritti, oppure un valore negativo in caso di errore.
+ * @note vsnprintf di newlib-nano, massimo 255 caratteri per chiamata.
+ */
 int rtt_printf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
 
-/** Carattere dall'input del core (buffer down), o -1 se non ce n'e' */
+/** @brief Carattere dall'input del core (buffer down).
+ *
+ * @return carattere (0..255), oppure -1 se non ce n'e' (non bloccante).
+ */
 int rtt_getkey(void);
 
 #endif

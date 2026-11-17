@@ -21,14 +21,27 @@
 
 #define SHM_SPIN_ATTEMPTS 20000u
 
-/* Il CRC copre len, flags e fc (i primi otto byte dello slot). Il campo
- * reserved deve essere 0 ed e' verificato a parte. La PDU e' gia' protetta da
- * FSoE. */
+/** @brief CRC-16 dell'header dello slot della mailbox.
+ *
+ * Copre len, flags e fc (i primi otto byte dello slot). Il campo reserved deve
+ * essere 0 ed e' verificato a parte. La PDU e' gia' protetta da FSoE, quindi
+ * non entra nel CRC.
+ *
+ * @param[in] slot slot da proteggere/verificare.
+ * @return CRC-16 dei metadati.
+ */
 static flow_u16 shm_header_crc(const flow_shm_slot_t* slot)
 {
   return flow_crc16(&slot->len, 8u);
 }
 
+/** @brief Banco circolare che ospita la index richiesta.
+ *
+ * @param[in] index numero di frame (>= 1).
+ * @return `(index - 1) % FLOW_SHM_BANKS`.
+ * @note Con 3 banchi il banco scelto non e' quello che un core sta scrivendo,
+ *       neanche con uno o due pubblicazioni di ritardo.
+ */
 static flow_u32 shm_bank_of(flow_u32 index)
 {
   return (index - 1u) % FLOW_SHM_BANKS;
@@ -303,7 +316,7 @@ void flow_shm_split(flow_u8* destination,
   }
 
   for (i = 0u; i < len; i++) {
-    if ((flow_pdu_is_crc_byte(len, i) != 0) == crc_part) {
+    if (flow_pdu_is_crc_byte(len, i) == crc_part) {
       destination[i] = frame[i];
     }
   }
@@ -327,8 +340,7 @@ void flow_shm_assemble(flow_u8* destination,
   }
 
   for (i = 0u; i < len; i++) {
-    destination[i] =
-        (flow_pdu_is_crc_byte(len, i) != 0) ? crc_part[i] : data_part[i];
+    destination[i] = flow_pdu_is_crc_byte(len, i) ? crc_part[i] : data_part[i];
   }
 }
 
@@ -344,9 +356,7 @@ bool flow_shm_part_matches(const flow_u8* stored,
   }
 
   for (i = 0u; i < len; i++) {
-    if (((flow_pdu_is_crc_byte(len, i) != 0) == crc_part)
-        && (stored[i] != frame[i]))
-    {
+    if ((flow_pdu_is_crc_byte(len, i) == crc_part) && (stored[i] != frame[i])) {
       return false;
     }
   }

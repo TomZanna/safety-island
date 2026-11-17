@@ -41,10 +41,9 @@
 #define FLOW_SHM_MAGIC 0x464C4F57u /**< "FLOW" */
 #define FLOW_SHM_PROTOCOL_ID 0x494D5839u /**< "IMX9" */
 
-/** Stato dell'header. */
-#define FLOW_SHM_STATE_UNINIT 0u
+/** Stato dell'header: 0 = non inizializzata (mai pubblicata), 1 = READY,
+ * 2 = FAULT. Solo READY e' uno stato valido per chi legge. */
 #define FLOW_SHM_STATE_READY 1u
-#define FLOW_SHM_STATE_FAULT 2u
 
 /** Nodi che possiedono una meta' del frame TX (indici di tx[conn][node]). */
 #define FLOW_SHM_NODE_SAFE_A 0u
@@ -60,7 +59,7 @@
 #define FLOW_SHM_PDU_PAD ((4u - (FLOW_PDU_MAX % 4u)) % 4u)
 #define FLOW_SHM_HEADER_SIZE 64u
 #define FLOW_SHM_SLOT_SIZE (12u + FLOW_PDU_MAX + FLOW_SHM_PDU_PAD)
-#define FLOW_SHM_CHANNEL_SIZE (16u + FLOW_SHM_BANKS * FLOW_SHM_SLOT_SIZE)
+#define FLOW_SHM_CHANNEL_SIZE (16u + (FLOW_SHM_BANKS * FLOW_SHM_SLOT_SIZE))
 
 /** @brief Header della mailbox: identita, versione, geometria e stato. */
 typedef struct FLOW_PACKED flow_shm_header
@@ -112,10 +111,6 @@ typedef struct FLOW_PACKED flow_shm
   flow_shm_channel_t rx[FLOW_NUM_CONNECTIONS];
 } flow_shm_t;
 
-#define FLOW_SHM_TOTAL_SIZE ((flow_u32)sizeof(flow_shm_t))
-#define FLOW_SHM_TX_OFFSET ((flow_u32)offsetof(flow_shm_t, tx))
-#define FLOW_SHM_RX_OFFSET ((flow_u32)offsetof(flow_shm_t, rx))
-
 FLOW_STATIC_ASSERT(sizeof(flow_shm_header_t) == FLOW_SHM_HEADER_SIZE,
                    "flow_shm_header_t size mismatch");
 FLOW_STATIC_ASSERT(offsetof(flow_shm_header_t, protocol_id) == 4u,
@@ -138,22 +133,28 @@ FLOW_STATIC_ASSERT(offsetof(flow_shm_t, tx) == FLOW_SHM_HEADER_SIZE,
                    "TX channels must follow the header");
 FLOW_STATIC_ASSERT(offsetof(flow_shm_t, rx)
                        == (FLOW_SHM_HEADER_SIZE
-                           + FLOW_NUM_CONNECTIONS * 2u * FLOW_SHM_CHANNEL_SIZE),
+                           + (FLOW_NUM_CONNECTIONS * 2u
+                              * FLOW_SHM_CHANNEL_SIZE)),
                    "RX channels must follow the TX channels");
 FLOW_STATIC_ASSERT(sizeof(flow_shm_t)
                        == (FLOW_SHM_HEADER_SIZE
-                           + FLOW_NUM_CONNECTIONS * 2u * FLOW_SHM_CHANNEL_SIZE
-                           + FLOW_NUM_CONNECTIONS * FLOW_SHM_CHANNEL_SIZE),
+                           + (FLOW_NUM_CONNECTIONS * 2u * FLOW_SHM_CHANNEL_SIZE)
+                           + (FLOW_NUM_CONNECTIONS * FLOW_SHM_CHANNEL_SIZE)),
                    "unexpected flow_shm_t size");
 
 /** Layout del frame ETG.5100:
  *   len == 6: [0]=cmd [1]=data [2..3]=CRC_0 [4..5]=ConnId
  *   len >  6: parole CRC a 3 + 4*j, ConnId negli ultimi due byte.
+ *
+ * @param[in] len    lunghezza del frame FSoE (>= FLOW_PDU_MIN);
+ * @param[in] offset posizione del byte nel frame.
+ * @return true se `offset` e' un byte di CRC (contributo di SAFE_A), false se
+ *         appartiene a comando/dati/ConnId (contributo di SAFE_B).
  */
-FLOW_INLINE int flow_pdu_is_crc_byte(flow_u32 len, flow_u32 offset)
+FLOW_INLINE bool flow_pdu_is_crc_byte(flow_u32 len, flow_u32 offset)
 {
   if (len < FLOW_PDU_MIN) {
-    return 0;
+    return false;
   }
 
   if (len == FLOW_PDU_MIN) {
@@ -161,7 +162,7 @@ FLOW_INLINE int flow_pdu_is_crc_byte(flow_u32 len, flow_u32 offset)
   }
 
   if ((offset < 3u) || (offset >= (len - 2u))) {
-    return 0;
+    return false;
   }
 
   return (((offset - 3u) % 4u) < 2u);

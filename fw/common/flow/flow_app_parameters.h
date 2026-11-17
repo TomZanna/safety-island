@@ -15,7 +15,15 @@
 #include "flow_config.h"
 #include "flow_types.h"
 
-/** FSOEAPP_STATUS_OK (0) se i parametri sono quelli di flow_config.h. */
+/** @brief Verifica i parametri applicativi della connessione FSoE.
+ *
+ * @param[in] timeout_ms timeout del watchdog dichiarato dallo stack (non usato:
+ *                       i parametri non dipendono dal tempo);
+ * @param[in] parameters due uint16 little endian (4 byte);
+ * @param[in] size       dimensione di `parameters`.
+ * @return FSOEAPP_STATUS_OK se coincidono con flow_config.h, altrimenti
+ *         FSOEAPP_STATUS_BAD_APP_PARAMETER.
+ */
 flow_u8 flow_app_parameters_verify(flow_u16 timeout_ms,
                                    const void* parameters,
                                    size_t size);

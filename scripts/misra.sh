@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # cppcheck con addon MISRA C:2012 (non certificato) sui sorgenti fw/.
 #
+# Un solo passaggio: cppcheck produce il report COMPLETO (senza soppressioni),
+# poi scripts/misra_check.py lo confronta con quality/misra-suppressions.txt.
+# Il confronto e' nei due sensi: finding nuovi = regressione, righe di baseline
+# senza finding = deviazione obsoleta (da rivalutare, non da copiare).
+#
 # Uso: misra.sh [--check]
-#   senza --check: genera il report e non fallisce sui finding
-#   --check:       fallisce sulle violazioni non soppresse
+#   senza --check: genera il report e il riepilogo, non fallisce sui finding
+#   --check:       fallisce su finding nuovi o soppressioni obsolete
 # Ambiente: SI_CPPCHECK, SI_CPPCHECK_MIN_VERSION, SI_BUILD_DIR.
 source "$(dirname "$0")/common.sh"
 
@@ -29,8 +34,11 @@ supp="$ROOT/quality/misra-suppressions.txt"
 [ -f "$supp" ] || die "file di soppressioni mancante: $supp"
 
 cd "$ROOT"
+# --project relativo: cppcheck riporta i path relativi alla radice del repo,
+# cosi' report e baseline restano leggibili e confrontabili.
+db_arg="${db#"$ROOT"/}"
 args=(
-    --project="$db"
+    --project="$db_arg"
     --file-filter='fw/*'
     -i fw/common/fsoe
     -i ext
@@ -47,19 +55,13 @@ args=(
     --output-file="$report"
 )
 if [ "$mode" = "check" ]; then
-    args+=(--suppressions-list="$supp" --error-exitcode=1)
+    check_args=(--check)
+else
+    check_args=()
 fi
 info "cppcheck MISRA (non certificato) -> $report"
-set +e
-"$tool" "${args[@]}"
-status=$?
-set -e
-findings=0
-if [ -f "$report" ]; then
-    findings="$(grep -cE 'misra-c2012-' "$report" || true)"
-fi
-info "MISRA: $findings righe nel report (non e' una certificazione)"
-if [ "$mode" = "check" ] && [ "$status" -ne 0 ]; then
-    die "violazioni MISRA non soppresse: vedi $report"
-fi
+"$tool" "${args[@]}" || die "cppcheck fallito: vedi l'output sopra"
+python3 "$ROOT/scripts/misra_check.py" \
+    --report "$report" --suppressions "$supp" "${check_args[@]}" \
+    || die "MISRA: baseline non rispettata (dettagli sopra, report in $report)"
 exit 0

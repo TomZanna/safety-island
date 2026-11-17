@@ -12,8 +12,13 @@
 
 #include "flow_types.h"
 
-/** Non ritorna: ciclo infinito del core safe. self = FLOW_CORE_SAFE_A (m70) o
- * FLOW_CORE_SAFE_B (m71). */
+/** @brief Punto di ingresso di un core safe: non ritorna.
+ *
+ * Esegue il boot (piattaforma, mailbox, MU18, selftest), poi il ciclo infinito
+ * sincronizzato con la barrier del FIELDBUS.
+ *
+ * @param[in] self FLOW_CORE_SAFE_A (m70) o FLOW_CORE_SAFE_B (m71).
+ */
 void safe_main(flow_core_id_t self) FLOW_NORETURN;
 
 #endif /* SI_SAFE_H */

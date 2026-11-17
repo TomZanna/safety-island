@@ -13,6 +13,15 @@
 
 #include "flow_types.h"
 
+/** @brief Scambio ICC di prova fra i due core safe.
+ *
+ * Esercita OCRAM, doorbell MU18, sequence e i due CRC-32 pubblicando un probe
+ * e attendendo quello del peer (fino a 50 tentativi).
+ *
+ * @param[in] self ruolo del core che esegue il selftest.
+ * @return true se il peer ha risposto con il probe atteso.
+ * @pre Va chiamata dopo la sincronizzazione con l'owner della mailbox.
+ */
 bool safe_selftest_icc(flow_core_id_t self);
 
 #endif /* SI_SAFE_SELFTEST_H */

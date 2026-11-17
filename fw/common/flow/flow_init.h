@@ -13,7 +13,15 @@
 
 #include "flow_types.h"
 
-/** cycle_ms: periodo del ruolo (10 ms safe, 2 ms fieldbus). */
+/** @brief Inizializzazione comune del sottosistema flow.
+ *
+ * Imposta l'identita' del core, inizializza la piattaforma (DWT, tick) e
+ * stampa il banner con la geometria della memoria condivisa.
+ *
+ * @param[in] self     ruolo del core che esegue il boot;
+ * @param[in] cycle_ms periodo del ruolo (10 ms safe, 2 ms fieldbus).
+ * @pre Va chiamata una sola volta, prima di mailbox, ICC e selftest.
+ */
 void flow_init(flow_core_id_t self, flow_u32 cycle_ms);
 
 #endif /* SI_FLOW_INIT_H */
