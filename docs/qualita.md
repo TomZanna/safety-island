@@ -111,3 +111,12 @@ cppcheck --project=build/<preset>/compile_commands.json \
   fault injection e le misure di WCET/stack.
 - La formattazione dipende dalla versione di clang-format: il warning di
   versione esiste proprio per rendere visibile la differenza.
+
+Due limiti pratici, voluti:
+
+- `clang-tidy` gira con `-Wno-everything` per non inondare il report con i
+  warning di SDK/newlib; i warning del compilatore restano quelli di
+  `-Wall -Wextra` nel build firmware.
+- cppcheck non conosce i builtin atomics (`__ATOMIC_*`) usati da
+  `flow_icc.c`/`flow_shm.c`: `misra-config` e' soppresso e il report MISRA
+  puo' avere falsi negativi su quelle espressioni.
