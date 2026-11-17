@@ -1,15 +1,16 @@
-# imx94_firmware(<target> CORE cm7_core0|cm7_core1|cm33_core1 [FLOW_ROLE master|fieldbus] SOURCES <file>...)
+# imx94_firmware(<target> CORE cm7_core0|cm7_core1|cm33_core1 ROLE safe_a|safe_b|fieldbus SOURCES <file>...)
 #
 # Crea l'eseguibile <target>.elf (+ .bin, .map) per un core secondario dell'i.MX94, con l'SDK MCUXpresso
 # minimo di SDK_ROOT (ext/sdk/mcuxsdk, sincronizzato da west) e il codice comune di fw/common.
 # Variabili (dal superbuild): SDK_ROOT, WAIT_DEBUGGER. Log/input via RTT condiviso (fw/common/rtt_shared.c).
-# FLOW_ROLE aggiunge il virtual safe PLC (fw/common/flow/): master = core safe (M7_0/M7_1),
-# fieldbus = M33_1 (fa l'A55 + lo slave FSoE). Il ruolo determina FLOW_CORE_ID (vedi flow_config.h).
+# ROLE aggiunge il virtual safe PLC e linka il codice del ruolo: safe_a/safe_b -> fw/safe/ (dove il
+# main.c dell'app chiama safe_main(FLOW_CORE_SAFE_A/B)), fieldbus -> fw/fieldbus/ (fieldbus_main()).
+# Gli altri file del sottosistema stanno in fw/common/flow/.
 include_guard(GLOBAL)
 set(FW_COMMON "${CMAKE_CURRENT_LIST_DIR}/../common")
 
 function(imx94_firmware target)
-    cmake_parse_arguments(F "" "CORE;FLOW_ROLE" "SOURCES" ${ARGN})
+    cmake_parse_arguments(F "" "CORE;ROLE" "SOURCES" ${ARGN})
     if(NOT SDK_ROOT OR NOT EXISTS "${SDK_ROOT}/devices/i.MX/i.MX943")
         message(FATAL_ERROR "SDK_ROOT=${SDK_ROOT} non valido: 'make deps'")
     endif()
@@ -73,20 +74,41 @@ function(imx94_firmware target)
 
     set(arch -mthumb ${cpu} -mfloat-abi=hard)
 
-    # --- virtual safe PLC (fw/common/flow) -------------------------------------------------------
-    # FLOW_ROLE: master = core safe (m70 = SAFE_A, m71 = SAFE_B), fieldbus = m33s (A55 + slave FSoE).
-    if(F_FLOW_ROLE)
-        if(target STREQUAL "m70")
-            set(flow_core_id 0)
-        elseif(target STREQUAL "m71")
-            set(flow_core_id 1)
-        elseif(target STREQUAL "m33s")
-            set(flow_core_id 2)
-        else()
-            message(FATAL_ERROR "imx94_firmware: FLOW_ROLE su '${target}' non previsto")
-        endif()
+    # --- virtual safe PLC (fw/safe, fw/fieldbus, fw/common/flow) ---------------------------------
+    # ROLE: safe_a e safe_b linkano fw/safe/ (i due core del 1oo2), fieldbus linka fw/fieldbus/.
+    # Il ruolo lo passa il main.c dell'app (safe_main(FLOW_CORE_SAFE_A/B), fieldbus_main()):
+    # qui si scelgono solo i sorgenti, senza define di ruolo.
+    if(F_ROLE)
         set(flow_dir "${FW_COMMON}/flow")
         set(fsoe_dir "${FW_COMMON}/fsoe")
+        set(fw_root "${CMAKE_CURRENT_LIST_DIR}/..")
+
+        if(F_ROLE MATCHES "^safe_(a|b)$")
+            set(role_dir "${fw_root}/safe")
+            set(role_sources
+                "${role_dir}/safe_main.c"
+                "${role_dir}/safe_platform.c"
+                "${role_dir}/selftest_safe.c"
+                "${role_dir}/flow_safe.c"
+                "${role_dir}/flow_safe_logic.c"
+                "${role_dir}/fsoe_app.c")
+        elseif(F_ROLE STREQUAL "fieldbus")
+            set(role_dir "${fw_root}/fieldbus")
+            set(role_sources
+                "${role_dir}/fieldbus_main.c"
+                "${role_dir}/flow_field.c"
+                "${role_dir}/flow_a55.c"
+                "${role_dir}/fsoe_app.c")
+        else()
+            message(FATAL_ERROR "imx94_firmware: ROLE '${F_ROLE}' non previsto (safe_a|safe_b|fieldbus)")
+        endif()
+
+        # Il ruolo deve combaciare con il core: un errore qui non arriva in board.
+        if((F_ROLE STREQUAL "safe_a" AND NOT core STREQUAL "cm7_core0") OR
+           (F_ROLE STREQUAL "safe_b" AND NOT core STREQUAL "cm7_core1") OR
+           (F_ROLE STREQUAL "fieldbus" AND NOT core STREQUAL "cm33_core1"))
+            message(FATAL_ERROR "imx94_firmware: ROLE '${F_ROLE}' incoerente con CORE '${core}'")
+        endif()
 
         # Stack FSoE di rt-labs come archivio statico separato: ogni file compilato a parte, link
         # finale con l'app. FSoEappl/ e' l'esempio NXP e non si compila; il port e' flow/port.
@@ -103,7 +125,7 @@ function(imx94_firmware target)
             "${flow_dir}/port/fsoeport.c")
         target_include_directories(fsoe-${target} PRIVATE
             "${fsoe_dir}/include" "${fsoe_dir}/src" "${flow_dir}" "${flow_dir}/port" ${fw_includes})
-        target_compile_definitions(fsoe-${target} PRIVATE FSOE_STATIC_DEFINE FLOW_CORE_ID=${flow_core_id})
+        target_compile_definitions(fsoe-${target} PRIVATE FSOE_STATIC_DEFINE)
         target_compile_options(fsoe-${target} PRIVATE ${arch} -include "${FW_COMMON}/mcux_config.h"
             -ffunction-sections -fdata-sections -fno-common -fno-builtin -w)
 
@@ -111,20 +133,17 @@ function(imx94_firmware target)
             "${flow_dir}/flow_mem.c"
             "${flow_dir}/flow_crc.c"
             "${flow_dir}/flow_shm.c"
+            "${flow_dir}/flow_app_parameters.c"
             "${flow_dir}/flow_mu.c"
             "${flow_dir}/flow_icc.c"
             "${flow_dir}/flow_mu18.c"
-            "${flow_dir}/flow_safe_logic.c"
-            "${flow_dir}/flow_safe.c"
-            "${flow_dir}/flow_a55.c"
-            "${flow_dir}/flow_field.c"
-            "${flow_dir}/flow_fsoe_app.c"
             "${flow_dir}/flow_selftest.c"
-            "${flow_dir}/flow.c"
-            "${FW_COMMON}/flow_platform_imx94.c")
-        target_include_directories(${target} PRIVATE "${flow_dir}" "${flow_dir}/port"
+            "${flow_dir}/flow_init.c"
+            "${FW_COMMON}/flow_platform_imx94.c"
+            ${role_sources})
+        target_include_directories(${target} PRIVATE "${flow_dir}" "${flow_dir}/port" "${role_dir}"
             "${fsoe_dir}/include" "${fsoe_dir}/src")
-        target_compile_definitions(${target} PRIVATE FLOW_CORE_ID=${flow_core_id} FSOE_STATIC_DEFINE)
+        target_compile_definitions(${target} PRIVATE FSOE_STATIC_DEFINE)
         target_link_libraries(${target} PRIVATE fsoe-${target})
     endif()
 

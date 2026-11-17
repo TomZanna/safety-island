@@ -1,7 +1,8 @@
 /*
- * Un core safe (m70 = SAFE_A, m71 = SAFE_B): stessa sorgente per entrambi, il
- * build sceglie FLOW_CORE_ID. Ogni core ha la sua istanza dello stack FSoE
- * master, il suo stato di sequenza MU e i suoi canali TX nella mailbox.
+ * Un core safe (m70 = SAFE_A, m71 = SAFE_B): stessa sorgente per entrambi; il
+ * ruolo lo passa il main.c dell'app (safe_main), non una macro di build. Ogni
+ * core ha la sua istanza dello stack FSoE master, il suo stato di sequenza MU e
+ * i suoi canali TX nella mailbox.
  *
  * I quattro passi del diagramma (flow_safe_step) sono:
  *   1. latch dei frame RX dalla mailbox
@@ -17,27 +18,26 @@
 #define SI_FLOW_SAFE_H
 
 #include "flow_config.h"
+#include "flow_fsoe_app.h"
 #include "flow_mu.h"
+#include "flow_safe_io.h"
 #include "flow_safe_logic.h"
 #include "flow_shm.h"
 #include "flow_types.h"
 
 #include <fsoemaster.h>
 
-#define FLOW_FSOE_REF_MAGIC 0x46534F45u /* "FSOE" */
-#define FLOW_FSOE_KIND_MASTER 0u
-#define FLOW_FSOE_KIND_SLAVE 1u
+typedef struct flow_safe flow_safe_t;
 
-/* Riferimento passato a fsoemaster_init()/fsoeslave_init(): il tipo di istanza
- * decide a chi vanno le callback (in un binario c'e' solo il proprio tipo, la
- * dispatch serve perche' la stessa flow_fsoe_app.c gira sui tre core). */
-typedef struct flow_fsoe_app_ref
+/* Riferimento passato a fsoemaster_init(): l'API rt-labs lo consegna alle
+ * callback come `void *`. Tipo proprio del ruolo safe (in questo binario non
+ * esiste lo slave), quindi nessun dispatch a runtime. */
+typedef struct safe_fsoe_ref
 {
     flow_u32 magic;
-    flow_u32 kind;
     flow_u32 k;
-    void *owner;
-} flow_fsoe_app_ref_t;
+    flow_safe_t *safe;
+} safe_fsoe_ref_t;
 
 /* Copia locale di un frame RX/TX (passo 1 del diagramma). */
 typedef struct flow_fsoe_slot
@@ -65,7 +65,7 @@ typedef struct flow_safe
     flow_mu_state_t mu;
 
     fsoemaster_t master[FLOW_NUM_CONNECTIONS];
-    flow_fsoe_app_ref_t app_ref[FLOW_NUM_CONNECTIONS];
+    safe_fsoe_ref_t app_ref[FLOW_NUM_CONNECTIONS];
 
     /* Copia in RAM locale dei frame RX. */
     flow_fsoe_slot_t rx_slot[FLOW_NUM_CONNECTIONS];
@@ -114,6 +114,5 @@ void flow_safe_set_fault(flow_safe_t *safe, flow_test_fault_t fault, flow_u32 fa
 void flow_safe_on_egress(flow_safe_t *safe, flow_u32 k, const void *buffer, size_t size);
 size_t flow_safe_on_recv(flow_safe_t *safe, flow_u32 k, void *buffer, size_t size);
 flow_u16 flow_safe_on_session(flow_safe_t *safe, flow_u32 k);
-flow_u8 flow_safe_validate_parameters(flow_u16 timeout_ms, const void *parameters, size_t size);
 
 #endif /* SI_FLOW_SAFE_H */

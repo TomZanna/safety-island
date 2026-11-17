@@ -5,14 +5,12 @@
 #include "flow_platform.h"
 #include "flow_shm.h"
 
-#include <fsoeapp.h>
 #include <fsoemaster.h>
 
-#if (FLOW_CORE_ID == FLOW_CORE_SAFE_A)
-#define SAFE_TAG "A"
-#else
-#define SAFE_TAG "B"
-#endif
+static const char *safe_tag(const flow_safe_t *safe)
+{
+    return flow_role_log_tag(safe->id);
+}
 
 FLOW_STATIC_ASSERT(FLOW_PDU_MAX == FSOEMASTER_FRAME_SIZE(FLOW_SAFE_DATA_SIZE),
     "FLOW_PDU_MAX does not match the FSoE configuration");
@@ -78,7 +76,7 @@ static void safe_note_anomaly(flow_safe_t *safe, const char *what)
 {
     safe->anomalies++;
     safe->cycle_fault = true;
-    flow_platform_log(SAFE_TAG, "cycle %u: ANOMALIA %s -> fail-safe", (unsigned)safe->cycle, what);
+    flow_platform_log(safe_tag(safe), "cycle %u: ANOMALIA %s -> fail-safe", (unsigned)safe->cycle, what);
 }
 
 static void safe_merge_anomalies(flow_safe_t *safe, flow_u32 peer)
@@ -92,7 +90,7 @@ static void safe_request_reset(flow_safe_t *safe, flow_u32 k)
 {
     if (fsoemaster_set_reset_request_flag(&safe->master[k]) == FSOEMASTER_STATUS_OK) {
         safe->stats.reset_requests++;
-        flow_platform_log(SAFE_TAG, "k=%u reset richiesto", (unsigned)k);
+        flow_platform_log(safe_tag(safe), "k=%u reset richiesto", (unsigned)k);
     }
 }
 
@@ -145,7 +143,7 @@ static bool safe_fault_active(flow_safe_t *safe, flow_test_fault_t type)
     if (type == FLOW_TEST_FAULT_SESSION) {
         safe->fault = FLOW_TEST_FAULT_NONE;
         safe->fault_cycle = 0u;
-        flow_platform_log(SAFE_TAG, "fault injection attivo (session)");
+        flow_platform_log(safe_tag(safe), "fault injection attivo (session)");
         return true;
     }
 
@@ -155,7 +153,7 @@ static bool safe_fault_active(flow_safe_t *safe, flow_test_fault_t type)
 
     safe->fault = FLOW_TEST_FAULT_NONE;
     safe->fault_cycle = 0u;
-    flow_platform_log(SAFE_TAG, "fault injection attivo (tipo %u)", (unsigned)type);
+    flow_platform_log(safe_tag(safe), "fault injection attivo (tipo %u)", (unsigned)type);
     return true;
 #else
     (void)safe;
@@ -187,7 +185,7 @@ static void safe_latch_rx(flow_safe_t *safe)
 
         if (!flow_shm_read_index(channel, published, &slot)) {
             safe->stats.rx_latch_failures++;
-            flow_platform_log(SAFE_TAG, "k=%u slot RX %u non valido", (unsigned)k, (unsigned)published);
+            flow_platform_log(safe_tag(safe), "k=%u slot RX %u non valido", (unsigned)k, (unsigned)published);
             continue;
         }
 
@@ -216,19 +214,19 @@ static void safe_sync(flow_safe_t *safe)
             &safe->master[k], &safe->safe_outputs[k], &safe->raw_inputs[k], &safe->sync[k]);
 
         if (status != FSOEMASTER_STATUS_OK) {
-            flow_platform_log(SAFE_TAG, "k=%u fsoemaster_sync failed", (unsigned)k);
+            flow_platform_log(safe_tag(safe), "k=%u fsoemaster_sync failed", (unsigned)k);
             continue;
         }
 
         if (safe->sync[k].current_state != previous_state) {
-            flow_platform_log(SAFE_TAG, "k=%u stato %s -> %s", (unsigned)k,
+            flow_platform_log(safe_tag(safe), "k=%u stato %s -> %s", (unsigned)k,
                 fsoemaster_state_description(previous_state),
                 fsoemaster_state_description(safe->sync[k].current_state));
         }
 
         if (safe->sync[k].reset_event != FSOEMASTER_RESETEVENT_NONE) {
             safe->send_enabled[k] = false;
-            flow_platform_log(SAFE_TAG, "k=%u reset da %s: %s", (unsigned)k,
+            flow_platform_log(safe_tag(safe), "k=%u reset da %s: %s", (unsigned)k,
                 (safe->sync[k].reset_event == FSOEMASTER_RESETEVENT_BY_MASTER) ? "master" : "slave",
                 fsoemaster_reset_reason_description(safe->sync[k].reset_reason));
         }
@@ -466,7 +464,7 @@ flow_u16 flow_safe_on_session(flow_safe_t *safe, flow_u32 k)
     session = (flow_u16)(random + peer_message->random);
     safe->session_id = session;
 
-    flow_platform_log(SAFE_TAG, "SESSION ID: 0x%04x + 0x%04x = 0x%04x", (unsigned)random,
+    flow_platform_log(safe_tag(safe), "SESSION ID: 0x%04x + 0x%04x = 0x%04x", (unsigned)random,
         (unsigned)peer_message->random, (unsigned)session);
 
     return session;
@@ -569,28 +567,6 @@ size_t flow_safe_on_recv(flow_safe_t *safe, flow_u32 k, void *buffer, size_t siz
     return size;
 }
 
-flow_u8 flow_safe_validate_parameters(flow_u16 timeout_ms, const void *parameters, size_t size)
-{
-    const flow_u8 *bytes = (const flow_u8 *)parameters;
-    flow_u16 param1;
-    flow_u16 param2;
-
-    (void)timeout_ms;
-
-    if ((bytes == NULL) || (size != FLOW_APP_PARAMETERS_SIZE)) {
-        return FSOEAPP_STATUS_BAD_APP_PARAMETER;
-    }
-
-    param1 = (flow_u16)(((flow_u16)bytes[1] << 8u) | bytes[0]);
-    param2 = (flow_u16)(((flow_u16)bytes[3] << 8u) | bytes[2]);
-
-    if ((param1 != FLOW_APP_PARAMETER_1) || (param2 != FLOW_APP_PARAMETER_2)) {
-        return FSOEAPP_STATUS_BAD_APP_PARAMETER;
-    }
-
-    return FSOEAPP_STATUS_OK;
-}
-
 void flow_safe_init(flow_safe_t *safe, flow_core_id_t id, flow_shm_t *shm)
 {
     flow_u32 k;
@@ -614,18 +590,17 @@ void flow_safe_init(flow_safe_t *safe, flow_core_id_t id, flow_shm_t *shm)
         };
 
         safe->app_ref[k].magic = FLOW_FSOE_REF_MAGIC;
-        safe->app_ref[k].kind = FLOW_FSOE_KIND_MASTER;
         safe->app_ref[k].k = k;
-        safe->app_ref[k].owner = safe;
+        safe->app_ref[k].safe = safe;
 
         flow_safe_logic_init(&safe->logic[k]);
 
         if (fsoemaster_init(&safe->master[k], &cfg, &safe->app_ref[k]) != FSOEMASTER_STATUS_OK) {
-            flow_platform_log(SAFE_TAG, "k=%u fsoemaster_init fallita", (unsigned)k);
+            flow_platform_log(safe_tag(safe), "k=%u fsoemaster_init fallita", (unsigned)k);
             flow_platform_fatal();
         }
     }
 
-    flow_platform_log(SAFE_TAG, "master FSoE pronto (%u connessioni, watchdog %u ms)",
+    flow_platform_log(safe_tag(safe), "master FSoE pronto (%u connessioni, watchdog %u ms)",
         (unsigned)FLOW_NUM_CONNECTIONS, (unsigned)FLOW_WATCHDOG_MS);
 }

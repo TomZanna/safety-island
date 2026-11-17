@@ -252,6 +252,15 @@ void flow_shm_update_heartbeat(flow_shm_t *shm, flow_core_id_t core, flow_u32 va
     }
 }
 
+flow_u32 flow_shm_heartbeat(const flow_shm_t *shm, flow_core_id_t core)
+{
+    if ((shm == NULL) || (core >= FLOW_CORE_COUNT)) {
+        return 0u;
+    }
+
+    return __atomic_load_n(&shm->header.heartbeat[core], __ATOMIC_ACQUIRE);
+}
+
 void flow_shm_split(flow_u8 *destination, const flow_u8 *frame, flow_u32 len, bool crc_part)
 {
     flow_u32 i;

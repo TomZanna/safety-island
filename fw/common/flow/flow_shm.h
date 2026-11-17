@@ -45,6 +45,9 @@ bool flow_shm_publish(flow_shm_channel_t *channel, flow_u32 len, flow_u32 fc, fl
 /* Heartbeat di telemetria, scritto da ogni ruolo a ogni ciclo. */
 void flow_shm_update_heartbeat(flow_shm_t *shm, flow_core_id_t core, flow_u32 value);
 
+/* Lettura del heartbeat di un ruolo (per la telemetria degli altri due). */
+flow_u32 flow_shm_heartbeat(const flow_shm_t *shm, flow_core_id_t core);
+
 /* Copia solo il contributo di un core: crc_part true tiene i byte CRC, false
  * tiene comando + dati + Connection ID. */
 void flow_shm_split(flow_u8 *destination, const flow_u8 *frame, flow_u32 len, bool crc_part);

@@ -3,35 +3,30 @@
 #include "flow_platform.h"
 #include "fsl_device_registers.h"
 
-static flow_mu18_stats_t s_stats;
+#include <stddef.h>
 
-/* Il proprio lato della MU18: dipende dal ruolo, e' un vincolo hardware. Gli
- * altri ruoli (M33S) non hanno nessun lato MU18 raggiungibile. */
-#if (FLOW_CORE_ID == FLOW_CORE_SAFE_A)
-#define MU18_SELF ((MU_Type *)FLOW_MU18_B_BASE) /* M7_0 = lato B */
-#define MU18_PRESENT 1
-#elif (FLOW_CORE_ID == FLOW_CORE_SAFE_B)
-#define MU18_SELF ((MU_Type *)FLOW_MU18_A_BASE) /* M7_1 = lato A */
-#define MU18_PRESENT 1
-#else
-#define MU18_PRESENT 0
-#endif
+static flow_mu18_stats_t s_stats;
+static MU_Type *s_mu;
+
+void flow_mu18_bind(flow_u32 base)
+{
+    s_mu = (base != 0u) ? (MU_Type *)base : NULL;
+}
 
 bool flow_mu18_available(void)
 {
-#if MU18_PRESENT
-    return true;
-#else
-    return false;
-#endif
+    return s_mu != NULL;
 }
 
 bool flow_mu18_send(flow_u32 word0, flow_u32 word1, flow_u32 timeout_us)
 {
-#if MU18_PRESENT
-    MU_Type *mu = MU18_SELF;
+    MU_Type *mu = s_mu;
     const flow_u32 start = flow_platform_time_us();
     const flow_u32 empty = MU_TSR_TE0_MASK | MU_TSR_TE1_MASK;
+
+    if (mu == NULL) {
+        return false;
+    }
 
     /* TR0/TR1 liberi prima di scrivere, poi la MU trasferisce da sola. */
     while ((mu->TSR & empty) != empty) {
@@ -45,18 +40,15 @@ bool flow_mu18_send(flow_u32 word0, flow_u32 word1, flow_u32 timeout_us)
     mu->TR[1] = word1;
     s_stats.sent++;
     return true;
-#else
-    (void)word0;
-    (void)word1;
-    (void)timeout_us;
-    return false;
-#endif
 }
 
 bool flow_mu18_recv(flow_u32 *word0, flow_u32 *word1, flow_u32 timeout_us)
 {
-#if MU18_PRESENT
     const flow_u32 start = flow_platform_time_us();
+
+    if (s_mu == NULL) {
+        return false;
+    }
 
     for (;;) {
         if (flow_mu18_poll(word0, word1)) {
@@ -67,21 +59,14 @@ bool flow_mu18_recv(flow_u32 *word0, flow_u32 *word1, flow_u32 timeout_us)
             return false;
         }
     }
-#else
-    (void)word0;
-    (void)word1;
-    (void)timeout_us;
-    return false;
-#endif
 }
 
 bool flow_mu18_poll(flow_u32 *word0, flow_u32 *word1)
 {
-#if MU18_PRESENT
-    MU_Type *mu = MU18_SELF;
+    MU_Type *mu = s_mu;
     const flow_u32 full = MU_RSR_RF0_MASK | MU_RSR_RF1_MASK;
 
-    if ((mu->RSR & full) != full) {
+    if ((mu == NULL) || (mu->RSR & full) != full) {
         return false;
     }
 
@@ -90,11 +75,6 @@ bool flow_mu18_poll(flow_u32 *word0, flow_u32 *word1)
     *word1 = mu->RR[1];
     s_stats.received++;
     return true;
-#else
-    (void)word0;
-    (void)word1;
-    return false;
-#endif
 }
 
 bool flow_mu18_ping(flow_u32 value, flow_u32 timeout_us, flow_u32 *peer_value)

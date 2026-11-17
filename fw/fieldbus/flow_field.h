@@ -5,28 +5,40 @@
  * e pubblica la risposta nella mailbox. Serve a far girare il 1oo2 e a non far
  * scattare il watchdog FSoE (gira ogni 2 ms).
  *
- * Il generatore e' deterministico (xorshift seedato da DWT + ruolo): utile per
+ * Il generatore e' deterministico (xorshift con seed costante): utile per
  * riprodurre una sequenza con gli stessi semi.
  */
 #ifndef SI_FLOW_FIELD_H
 #define SI_FLOW_FIELD_H
 
 #include "flow_config.h"
-#include "flow_safe.h" /* flow_fsoe_app_ref_t, flow_safe_inputs_t/outputs_t */
+#include "flow_fsoe_app.h"
+#include "flow_safe_io.h"
 #include "flow_types.h"
 
 #include <fsoeslave.h>
 
+typedef struct flow_field flow_field_t;
+
+/* Riferimento passato a fsoeslave_init(): tipo proprio del ruolo fieldbus (in
+ * questo binario non esiste il master), quindi nessun dispatch a runtime. */
+typedef struct field_fsoe_ref
+{
+    flow_u32 magic;
+    flow_u32 k;
+    flow_field_t *field;
+} field_fsoe_ref_t;
+
 typedef struct flow_field
 {
-    flow_fsoe_app_ref_t ref[FLOW_NUM_CONNECTIONS];
+    field_fsoe_ref_t ref[FLOW_NUM_CONNECTIONS];
     fsoeslave_t slave[FLOW_NUM_CONNECTIONS];
     fsoeslave_syncstatus_t sync[FLOW_NUM_CONNECTIONS];
 
     flow_safe_inputs_t field_inputs[FLOW_NUM_CONNECTIONS];
     flow_safe_outputs_t field_outputs[FLOW_NUM_CONNECTIONS];
 
-    /* Frame ricevuto dal master (assemblato dal role fieldbus). */
+    /* Frame ricevuto dal master (assemblato dal ruolo fieldbus). */
     flow_u8 rx_pdu[FLOW_PDU_MAX];
     flow_u32 rx_len;
     bool rx_ready;

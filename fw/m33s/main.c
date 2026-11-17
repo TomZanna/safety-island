@@ -3,11 +3,12 @@
  * le due meta' dei core safe (MIN dei contatori + interleave), esegue lo slave
  * FSoE e genera il processo di campo. Non e' un componente di sicurezza.
  *
- * Il codice sta in fw/common/flow/ (flow_main), identico per i tre ruoli; qui
- * solo il banner. RTT: canale 0 del control block condiviso (fw/common/rtt_shared.h).
+ * Qui solo il wiring dell'app: board_init, banner e punto di ingresso del ruolo
+ * (fw/fieldbus/fieldbus_main.c). RTT: canale 0 del control block condiviso
+ * (fw/common/rtt_shared.h).
  */
 #include "board.h"
-#include "flow.h"
+#include "fieldbus.h"
 
 int main(void)
 {
@@ -15,5 +16,5 @@ int main(void)
     LOG("\n[%s] avvio: agente SCMI \"%s\", core %u MHz\n", BOARD_CORE_NAME, board_scmi_agent(),
         (unsigned)(SystemCoreClock / 1000000U));
 
-    flow_main(); /* non ritorna */
+    fieldbus_main(); /* non ritorna */
 }

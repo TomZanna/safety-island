@@ -4,6 +4,10 @@
  *   lato A  MU18_A  0x42B70000  M7_1  (SAFE_B)
  *   lato B  MU18_B  0x42B80000  M7_0  (SAFE_A)
  *
+ * Qui c'e' solo il driver dei registri: il lato lo sceglie chi usa la MU
+ * (fw/safe/safe_platform.c, con flow_mu18_bind()). Gli altri ruoli non la
+ * bindano e le funzioni falliscono chiuse.
+ *
  * Ogni core raggiunge fisicamente solo il proprio lato. La MU ha 4 registri TR e
  * 4 RR da 32 bit (16 byte per direzione), quindi NON puo' portare i nostri
  * messaggi di cross-check (23..72 byte): porta il doorbell
@@ -20,7 +24,10 @@
 
 #include "flow_types.h"
 
-/* true se questo core ha un lato MU18 (i due M7; false su M33S). */
+/* Lega il driver al proprio lato (indirizzo base). 0 = nessun lato (fieldbus). */
+void flow_mu18_bind(flow_u32 base);
+
+/* true se questo core ha un lato MU18 configurato. */
 bool flow_mu18_available(void);
 
 /* Scrive due parole nel proprio lato (attende che TR0/TR1 siano liberi). */

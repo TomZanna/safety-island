@@ -10,11 +10,12 @@
 #include "flow_config.h"
 #include "flow_types.h"
 
-/* Identita' del core che sta eseguendo: deve combaciare con FLOW_CORE_ID. */
+/* Identita' del core che sta eseguendo: deve essere uno dei ruoli di
+ * flow_types.h. Va chiamata prima di flow_platform_init(). */
 void flow_platform_set_core(flow_core_id_t core);
 
-/* Inizializzazione una tantum (DWT, contatori). */
-void flow_platform_init(void);
+/* Inizializzazione una tantum (DWT, contatori, periodo del tick di ciclo). */
+void flow_platform_init(flow_u32 cycle_ms);
 
 /* Attende il prossimo tick di ciclo del ruolo corrente (10 ms safe, 2 ms
  * fieldbus). Ritorna false se la piattaforma si sta spegnendo. */

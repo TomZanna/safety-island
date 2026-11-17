@@ -19,7 +19,7 @@ set(quoted_sources
     "${PROJECT_SOURCE_DIR}/fw/common/flow/flow_shm_api.h"
     "${PROJECT_SOURCE_DIR}/fw/common/flow/flow_mu.h"
     "${PROJECT_SOURCE_DIR}/fw/common/flow/flow_icc.h"
-    "${PROJECT_SOURCE_DIR}/fw/common/flow/flow_safe.c"
+    "${PROJECT_SOURCE_DIR}/fw/safe/flow_safe.c"
     "${PROJECT_SOURCE_DIR}/fw/cmake/imx94.cmake")
 set(pdf "${CMAKE_BINARY_DIR}/docs/safety-island.pdf")
 

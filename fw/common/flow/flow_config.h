@@ -1,8 +1,10 @@
 /*
- * Configurazione a compile time del virtual safe PLC.
+ * Configurazione del virtual safe PLC: taglie, indirizzi e tempi, in un posto
+ * solo (niente magic number sparsi).
  *
- * Il codice e' lo stesso per i tre ruoli: cambia solo FLOW_CORE_ID, passato dal
- * build (-DFLOW_CORE_ID=0 m70, 1 m71, 2 m33s).
+ * Non c'e' un "ruolo di compilazione": il ruolo lo sceglie il main.c dell'app
+ * (fw/m70, fw/m71, fw/m33s) e il build linka solo i sorgenti di quel ruolo
+ * (fw/safe/ oppure fw/fieldbus/).
  *
  * Portato da imx-flow/bare-metal/include/flow_config.h, con:
  *   - indirizzi della mailbox presi dall'OCRAM condivisa (patch SM 0002), non dalla DDR;
@@ -105,16 +107,6 @@
 /* Build freestanding: false per le app, che linkano newlib-nano (memcpy ecc.). */
 #ifndef FLOW_FREESTANDING
 #define FLOW_FREESTANDING 0
-#endif
-
-/* Ruolo di questo binario (obbligatorio). */
-#ifndef FLOW_CORE_ID
-#error "FLOW_CORE_ID non definito: il build deve passare -DFLOW_CORE_ID=0|1|2"
-#endif
-
-#if (FLOW_CORE_ID != FLOW_CORE_SAFE_A) && (FLOW_CORE_ID != FLOW_CORE_SAFE_B) && \
-    (FLOW_CORE_ID != FLOW_CORE_FIELDBUS)
-#error "FLOW_CORE_ID non valido"
 #endif
 
 /* Ruolo che pubblica la meta' CRC del frame: lo definisce flow_shm_api.h

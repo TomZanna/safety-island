@@ -2,9 +2,7 @@
 
 #include "flow_config.h"
 #include "flow_crc.h"
-#include "flow_icc.h"
 #include "flow_mem.h"
-#include "flow_mu.h"
 #include "flow_platform.h"
 #include "flow_shm.h"
 
@@ -17,9 +15,14 @@
 
 static bool s_failed;
 
-static void check(const char *name, bool ok)
+void flow_selftest_check(const char *name, bool ok)
 {
     flow_platform_log("selftest", "%-24s %s", name, ok ? "PASS" : "FAIL");
+}
+
+static void check(const char *name, bool ok)
+{
+    flow_selftest_check(name, ok);
     if (!ok) {
         s_failed = true;
     }
@@ -96,63 +99,13 @@ static void test_ocram(void)
     check("ocram condivisa", ok);
 }
 
-/* Link ICC fra i due core safe: scambio full-duplex (ognuno pubblica il proprio
- * stato e attende quello del peer, con retry perche' i due core escono dal boot in
- * istanti diversi). Esercita in un colpo solo OCRAM, doorbell MU18, seq e i due
- * CRC-32. Si chiama dopo la sincronizzazione con l'owner della mailbox. */
-bool flow_selftest_icc(void)
-{
-#if (FLOW_CORE_ID == FLOW_CORE_FIELDBUS)
-    flow_platform_log("selftest", "%-24s skip (fieldbus)", "icc exchange");
-    return true;
-#else
-    typedef struct FLOW_PACKED icc_probe
-    {
-        flow_u32 role;
-        flow_u32 cycles;
-        flow_u32 magic;
-    } icc_probe_t;
-
-    const flow_core_id_t self = (flow_core_id_t)FLOW_CORE_ID;
-    const flow_core_id_t peer = (self == FLOW_CORE_SAFE_A) ? FLOW_CORE_SAFE_B : FLOW_CORE_SAFE_A;
-    icc_probe_t out;
-    bool ok = false;
-    flow_u16 attempt;
-
-    out.role = self;
-    out.cycles = flow_platform_cycles();
-    out.magic = 0x1CC1u;
-
-    for (attempt = 0u; (attempt < 50u) && !ok; attempt++) {
-        icc_probe_t in;
-        flow_u16 length = 0u;
-        const flow_u32 cycle = flow_icc_cycle_current();
-
-        flow_memset(&in, 0, sizeof(in));
-
-        if (!flow_icc_post(self, peer, FLOW_MU_CHAN_SESSION, 0u, cycle, &out, (flow_u16)sizeof(out))) {
-            continue;
-        }
-
-        if (!flow_icc_wait(self, peer, FLOW_MU_CHAN_SESSION, 0u, cycle, &in, (flow_u16)sizeof(in), &length, 20000u)) {
-            continue;
-        }
-
-        ok = (length == sizeof(in)) && (in.magic == 0x1CC1u) && (in.role == peer);
-    }
-
-    check("icc exchange", ok);
-    return ok;
-#endif
-}
-
-bool flow_selftest_run(void)
+bool flow_selftest_run(flow_core_id_t self)
 {
     s_failed = false;
 
-    flow_platform_log("selftest",
-        "ruolo %u: PDU max %u B, mailbox %u B, versione %u", (unsigned)FLOW_CORE_ID, (unsigned)FLOW_PDU_MAX,
-        (unsigned)sizeof(flow_shm_t), (unsigned)FLOW_SHM_VERSION);
+    flow_platform_log("selftest", "ruolo %s: PDU max %u B, mailbox %u B, versione %u",
+        flow_role_log_tag(self), (unsigned)FLOW_PDU_MAX, (unsigned)sizeof(flow_shm_t),
+        (unsigned)FLOW_SHM_VERSION);
 
     test_crc();
     test_split();

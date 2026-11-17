@@ -3,11 +3,8 @@
 #include "flow_mem.h"
 #include "flow_platform.h"
 
-#if (FLOW_CORE_ID == FLOW_CORE_FIELDBUS)
+/* Unico ruolo che esegue il campo: il tag non dipende dal build. */
 #define FIELD_TAG "fld"
-#else
-#define FIELD_TAG "fld?"
-#endif
 
 static flow_u32 field_next_random(flow_field_t *field)
 {
@@ -27,7 +24,8 @@ void flow_field_init(flow_field_t *field, flow_u16 slave_address)
 
     flow_memset(field, 0, (flow_u32)sizeof(*field));
 
-    field->rng = 0x1A2B3C4Du ^ (flow_u32)FLOW_CORE_ID;
+    /* Seed costante: stesso valore dei build precedenti (ruolo FIELDBUS = 2). */
+    field->rng = 0x1A2B3C4Du ^ (flow_u32)FLOW_CORE_FIELDBUS;
     if (field->rng == 0u) {
         field->rng = 0x5A5A5A5Au;
     }
@@ -41,9 +39,8 @@ void flow_field_init(flow_field_t *field, flow_u16 slave_address)
         };
 
         field->ref[k].magic = FLOW_FSOE_REF_MAGIC;
-        field->ref[k].kind = FLOW_FSOE_KIND_SLAVE;
         field->ref[k].k = k;
-        field->ref[k].owner = field;
+        field->ref[k].field = field;
 
         if (fsoeslave_init(&field->slave[k], &cfg, &field->ref[k]) != FSOESLAVE_STATUS_OK) {
             flow_platform_log(FIELD_TAG, "k=%u fsoeslave_init fallita", (unsigned)k);

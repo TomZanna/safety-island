@@ -1,6 +1,6 @@
 # Firmware dei core secondari: un progetto CMake per app (fw/<app>/), compilato come ExternalProject
 # con il toolchain arm-none-eabi e l'SDK minimo di deps/. Sempre ricompilato (incrementale): basta
-# modificare fw/<app>/*.c o fw/common/*.c e rifare "make image"/"make run".
+# modificare fw/<app>/*.c, fw/safe/*.c, fw/fieldbus/*.c o fw/common/*.c e rifare "make image"/"make run".
 # Uscite: build/<preset>/fw/<app>/<app>.{elf,bin,map} e compile_commands.json per l'IntelliSense.
 include(ExternalProject)
 

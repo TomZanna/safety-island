@@ -2,9 +2,10 @@
  * Piattaforma i.MX94 per il sottosistema flow (M7_0, M7_1, M33_1).
  *
  * Scelte:
- *   - tick di ciclo: SysTick a 1 kHz (board_millis, fw/common/board.c), 10 ms per i
- *     due core safe e 2 ms per il ruolo fieldbus. Un ritardo oltre due periodi
- *     riallinea il contatore invece di accumulare (s_slips lo conta).
+ *   - tick di ciclo: SysTick a 1 kHz (board_millis, fw/common/board.c) con il
+ *     periodo del ruolo passato a flow_platform_init() (10 ms safe, 2 ms
+ *     fieldbus). Un ritardo oltre due periodi riallinea il contatore invece di
+ *     accumulare (s_slips lo conta).
  *   - tempo in us: DWT->CYCCNT. E' una sorgente indipendente dal tick (nessuna
  *     causa comune con il watchdog FSoE) e non richiede periferiche dell'SM.
  *   - RNG: solo di banco (DWT + SysTick + ruolo), vedi FLOW_BENCH_RNG. Con
@@ -28,9 +29,11 @@
 #include "rtt_shared.h"
 
 static flow_u32 s_tick_ms;
+static flow_u32 s_cycle_ms;
 static flow_u32 s_cycles;
 static flow_u32 s_slips;
 static flow_u32 s_rng_state = 0x9E3779B9u;
+static flow_core_id_t s_core;
 static const char *s_role = "?";
 
 static const char *role_name(flow_core_id_t id)
@@ -45,28 +48,30 @@ static const char *role_name(flow_core_id_t id)
 
 void flow_platform_set_core(flow_core_id_t core)
 {
-    if (core != (flow_core_id_t)FLOW_CORE_ID) {
+    if (core >= FLOW_CORE_COUNT) {
         flow_platform_fatal();
     }
+    s_core = core;
     s_role = role_name(core);
 }
 
-void flow_platform_init(void)
+void flow_platform_init(flow_u32 cycle_ms)
 {
     /* DWT cycle counter: base di tempo indipendente da SysTick. */
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
     DWT->CYCCNT = 0u;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
+    s_cycle_ms = cycle_ms;
     s_tick_ms = board_millis();
     s_cycles = 0u;
     s_slips = 0u;
-    s_rng_state ^= DWT->CYCCNT ^ ((flow_u32)FLOW_CORE_ID << 8);
+    s_rng_state ^= DWT->CYCCNT ^ ((flow_u32)s_core << 8);
 }
 
 bool flow_platform_tick_wait(void)
 {
-    const flow_u32 period = (FLOW_CORE_ID == FLOW_CORE_FIELDBUS) ? FLOW_FIELD_CYCLE_MS : FLOW_SAFE_CYCLE_MS;
+    const flow_u32 period = s_cycle_ms;
 
     for (;;) {
         const flow_u32 now = board_millis();
