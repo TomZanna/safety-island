@@ -1,5 +1,7 @@
-/*
- * Messaggi di cross-check fra i due core safe (1oo2).
+/**
+ * @file flow_mu.h
+ * @brief Messaggi di cross-check fra i due core safe (1oo2).
+ * @ingroup flow_mu
  *
  * Non sono coperti dal CRC end-to-end FSoE: portano decisioni di sicurezza, quindi
  * hanno un proprio protocollo:
@@ -17,19 +19,20 @@
 #include "flow_config.h"
 #include "flow_types.h"
 
-#define FLOW_MU_MAGIC 0x4D553031u /* "MU01" */
+#define FLOW_MU_MAGIC 0x4D553031u /**< "MU01" */
 #define FLOW_MU_VERSION 1u
 #define FLOW_MU_PAYLOAD_MAX 48u
 #define FLOW_MU_MESSAGE_SIZE 72u
 #define FLOW_MU_CHAN_COUNT 4u
 #define FLOW_MU_TAG_MAX FLOW_NUM_CONNECTIONS
 
-/* Canali logici. */
+/** Canali logici. */
 #define FLOW_MU_CHAN_SESSION 0u
 #define FLOW_MU_CHAN_EGRESS 1u
 #define FLOW_MU_CHAN_INPUTS 2u
 #define FLOW_MU_CHAN_LOGIC 3u
 
+/** @brief Messaggio di cross-check: header, routing, sequenza e CRC-32. */
 typedef struct FLOW_PACKED flow_mu_message
 {
     flow_u32 magic;
@@ -51,6 +54,7 @@ typedef struct FLOW_PACKED flow_mu_message
 FLOW_STATIC_ASSERT(sizeof(flow_mu_message_t) == FLOW_MU_MESSAGE_SIZE, "flow_mu_message_t must be 72 bytes");
 FLOW_STATIC_ASSERT(FLOW_MU_PAYLOAD_MAX >= 32u, "MU payload must fit the cross-check messages");
 
+/** @brief Stato delle sequenze TX/RX per canale e tag. */
 typedef struct flow_mu_state
 {
     flow_core_id_t self;
@@ -60,7 +64,7 @@ typedef struct flow_mu_state
 
 void flow_mu_init(flow_mu_state_t *state, flow_core_id_t self);
 
-/*
+/**
  * Pubblica un messaggio e attende quello del peer. Il messaggio ricevuto viene
  * verificato (magic, versione, CRC, routing, lunghezza, sequence) prima di
  * essere restituito.

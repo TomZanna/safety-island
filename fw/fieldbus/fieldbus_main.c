@@ -1,5 +1,7 @@
-/*
- * Ciclo del core di campo (FIELDBUS, m33s).
+/**
+ * @file fieldbus_main.c
+ * @brief Ciclo del core di campo (FIELDBUS, m33s).
+ * @ingroup flow_field
  *
  * Ogni 2 ms unisce le due meta' del frame (flow_a55), fa girare slave + campo,
  * tiene da parte la risposta e la pubblica UNA volta per ciclo safe, poi apre il

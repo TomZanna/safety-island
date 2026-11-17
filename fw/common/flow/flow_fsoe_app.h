@@ -1,5 +1,7 @@
-/*
- * Identita' del riferimento passato allo stack FSoE.
+/**
+ * @file flow_fsoe_app.h
+ * @brief Identita' del riferimento passato allo stack FSoE.
+ * @ingroup flow
  *
  * L'API di rt-labs consegna le callback un `void *app_ref`: ogni ruolo definisce
  * il proprio tipo concreto (safe_fsoe_ref_t in fw/safe/flow_safe.h,
@@ -10,6 +12,6 @@
 #ifndef SI_FLOW_FSOE_APP_H
 #define SI_FLOW_FSOE_APP_H
 
-#define FLOW_FSOE_REF_MAGIC 0x46534F45u /* "FSOE" */
+#define FLOW_FSOE_REF_MAGIC 0x46534F45u /**< "FSOE" */
 
 #endif /* SI_FLOW_FSOE_APP_H */

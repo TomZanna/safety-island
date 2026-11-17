@@ -1,5 +1,7 @@
-/*
- * Ingressi e uscite di sicurezza scambiati con il campo.
+/**
+ * @file flow_safe_io.h
+ * @brief Ingressi e uscite di sicurezza scambiati con il campo.
+ * @ingroup flow_safe
  *
  * Sono tipi condivisi fra i due lati: i core safe li decodificano dal frame FSoE,
  * il fieldbus li genera e li pubblica. La funzione di sicurezza pura che li
@@ -11,15 +13,17 @@
 #include "flow_config.h"
 #include "flow_types.h"
 
+/** @brief Ingressi di sicurezza decodificati (4 byte). */
 typedef struct flow_safe_inputs
 {
-    flow_u16 ch_a; /* bit0 = E-stop OK, bit1 = porta chiusa, bit2 = reset */
+    flow_u16 ch_a; /**< bit0 = E-stop OK, bit1 = porta chiusa, bit2 = reset */
     flow_u16 ch_b;
 } flow_safe_inputs_t;
 
+/** @brief Uscite di sicurezza calcolate (4 byte). */
 typedef struct flow_safe_outputs
 {
-    flow_u16 enable; /* FLOW_SAFE_OUTPUT_ENABLED oppure 0 (fail-safe) */
+    flow_u16 enable; /**< FLOW_SAFE_OUTPUT_ENABLED oppure 0 (fail-safe) */
     flow_u16 status;
 } flow_safe_outputs_t;
 

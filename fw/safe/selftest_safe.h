@@ -1,5 +1,7 @@
-/*
- * Scambio ICC fra i due core safe (payload in OCRAM + doorbell MU18 + CRC).
+/**
+ * @file selftest_safe.h
+ * @brief Scambio ICC fra i due core safe (payload in OCRAM + doorbell MU18 + CRC).
+ * @ingroup flow_safe
  *
  * Esercita in un colpo solo OCRAM, doorbell MU18, seq e i due CRC-32. Va
  * chiamata dopo la sincronizzazione con l'owner della mailbox ed e' l'unico

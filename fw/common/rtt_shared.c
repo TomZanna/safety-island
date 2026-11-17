@@ -1,3 +1,9 @@
+/**
+ * @file rtt_shared.c
+ * @brief SEGGER RTT con un solo control block condiviso da tutti i core secondari, un canale per core.
+ * @ingroup rtt
+ *
+ */
 #include "rtt_shared.h"
 
 #include <stdarg.h>

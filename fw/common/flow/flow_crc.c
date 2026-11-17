@@ -1,3 +1,9 @@
+/**
+ * @file flow_crc.c
+ * @brief CRC software del sottosistema flow.
+ * @ingroup flow
+ *
+ */
 #include "flow_crc.h"
 
 flow_u32 flow_crc32(const void *data, flow_u32 size)

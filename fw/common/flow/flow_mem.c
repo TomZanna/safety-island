@@ -1,3 +1,9 @@
+/**
+ * @file flow_mem.c
+ * @brief Helper di memoria del sottosistema flow.
+ * @ingroup flow
+ *
+ */
 #include "flow_mem.h"
 
 #include "flow_config.h"

@@ -1,5 +1,7 @@
-/*
- * Port della libreria FSoE di rt-labs per le app dei core secondari.
+/**
+ * @file fsoeport.c
+ * @brief Port della libreria FSoE di rt-labs per le app dei core secondari.
+ * @ingroup flow
  *
  * - tempo: flow_platform_time_us (DWT, indipendente dal tick);
  * - memcpy/memcmp/memset: la libc di newlib-nano (le app non sono freestanding);

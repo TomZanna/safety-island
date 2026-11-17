@@ -1,3 +1,9 @@
+/**
+ * @file safe_platform.c
+ * @brief Aggancio alla piattaforma del ruolo safe.
+ * @ingroup flow_safe
+ *
+ */
 #include "safe_platform.h"
 
 #include "flow_config.h"

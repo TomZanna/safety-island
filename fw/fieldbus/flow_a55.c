@@ -1,3 +1,9 @@
+/**
+ * @file flow_a55.c
+ * @brief Lato "A55" della mailbox: il ruolo FIELDBUS legge l'ultimo frame che ENTRAMBI i core safe hanno pubblicato, unisce le due meta' e lo consegna allo slave FSoE. Non prende decisioni di sicurezza e non ripara niente.
+ * @ingroup flow_field
+ *
+ */
 #include "flow_a55.h"
 
 #include "flow_mem.h"

@@ -1,5 +1,7 @@
-/*
- * FONTE UNICA della mailbox in memoria condivisa fra i core secondari.
+/**
+ * @file flow_shm_api.h
+ * @brief FONTE UNICA della mailbox in memoria condivisa fra i core secondari.
+ * @ingroup flow_shm
  *
  * La includono il firmware (M7_0, M7_1, M33_1) e, se in futuro servisse, un
  * driver lato AP. Definisce il layout in byte, il protocol id e la versione: non
@@ -16,6 +18,15 @@
  *
  * Portato da imx-flow/bare-metal/include/flow_shm_api.h con FLOW_SHM_VERSION 2:
  * heartbeat per tutti e tre i ruoli e finestra di OCRAM condivisa (patch SM 0002).
+ *
+ * \mermaid
+ * flowchart LR
+ *   A["SAFE_A<br/>meta CRC"] --> TXA["tx[A]"]
+ *   B["SAFE_B<br/>meta dati"] --> TXB["tx[B]"]
+ *   TXA --> F["FIELDBUS<br/>MIN(count_A, count_B)<br/>+ interleave"]
+ *   TXB --> F
+ *   F --> RX["rx<br/>una per ciclo safe"]
+ * \endmermaid
  */
 #ifndef SI_FLOW_SHM_API_H
 #define SI_FLOW_SHM_API_H
@@ -23,32 +34,33 @@
 #include "flow_config.h"
 #include "flow_types.h"
 
-/* ------------------------------------------------------------- identity --- */
+/** ------------------------------------------------------------- identity --- */
 
-#define FLOW_SHM_MAGIC 0x464C4F57u       /* "FLOW" */
-#define FLOW_SHM_PROTOCOL_ID 0x494D5839u /* "IMX9" */
+#define FLOW_SHM_MAGIC 0x464C4F57u /**< "FLOW" */
+#define FLOW_SHM_PROTOCOL_ID 0x494D5839u /**< "IMX9" */
 
-/* Stato dell'header. */
+/** Stato dell'header. */
 #define FLOW_SHM_STATE_UNINIT 0u
 #define FLOW_SHM_STATE_READY 1u
 #define FLOW_SHM_STATE_FAULT 2u
 
-/* Nodi che possiedono una meta' del frame TX (indici di tx[conn][node]). */
+/** Nodi che possiedono una meta' del frame TX (indici di tx[conn][node]). */
 #define FLOW_SHM_NODE_SAFE_A 0u
 #define FLOW_SHM_NODE_SAFE_B 1u
 #define FLOW_SHM_NODE_COUNT FLOW_SAFE_CORE_COUNT
 
-/* Split del frame: SAFE_A mette i byte CRC, SAFE_B il resto. Nessuno dei due ha
+/** Split del frame: SAFE_A mette i byte CRC, SAFE_B il resto. Nessuno dei due ha
  * da solo un frame FSoE valido: lo assembla il ruolo FIELDBUS. */
 #define FLOW_SHM_CRC_NODE FLOW_SHM_NODE_SAFE_A
 #define FLOW_SHM_DATA_NODE FLOW_SHM_NODE_SAFE_B
 
-/* Padding che tiene ogni slot allineato a 4 byte. */
+/** Padding che tiene ogni slot allineato a 4 byte. */
 #define FLOW_SHM_PDU_PAD ((4u - (FLOW_PDU_MAX % 4u)) % 4u)
 #define FLOW_SHM_HEADER_SIZE 64u
 #define FLOW_SHM_SLOT_SIZE (12u + FLOW_PDU_MAX + FLOW_SHM_PDU_PAD)
 #define FLOW_SHM_CHANNEL_SIZE (16u + FLOW_SHM_BANKS * FLOW_SHM_SLOT_SIZE)
 
+/** @brief Header della mailbox: identita, versione, geometria e stato. */
 typedef struct FLOW_PACKED flow_shm_header
 {
     flow_u32 magic;
@@ -66,32 +78,35 @@ typedef struct FLOW_PACKED flow_shm_header
     flow_u32 reserved[4];
 } flow_shm_header_t;
 
+/** @brief Slot PDU con metadati protetti da CRC-16. */
 typedef struct FLOW_PACKED flow_shm_slot
 {
-    flow_u16 len;      /* numero di byte validi della PDU                */
-    flow_u16 flags;    /* riservato, deve essere 0                      */
-    flow_u32 fc;       /* contatore di frame del black channel          */
-    flow_u16 hdr_crc;  /* CRC-16 su len, flags, fc, reserved            */
-    flow_u16 reserved; /* deve essere 0                                 */
+    flow_u16 len;      /**< numero di byte validi della PDU */
+    flow_u16 flags;    /**< riservato, deve essere 0 */
+    flow_u32 fc;       /**< contatore di frame del black channel */
+    flow_u16 hdr_crc;  /**< CRC-16 su len, flags, fc, reserved */
+    flow_u16 reserved; /**< deve essere 0 */
     flow_u8 pdu[FLOW_PDU_MAX];
     flow_u8 pad[FLOW_SHM_PDU_PAD];
 } flow_shm_slot_t;
 
+/** @brief Canale TX/RX: 3 banchi con seqlock e contatore. */
 typedef struct FLOW_PACKED flow_shm_channel
 {
-    flow_u32 count;                    /* frame pubblicati (monotono)     */
-    flow_u32 bank_seq[FLOW_SHM_BANKS]; /* seqlock: dispari = scrittura    */
+    flow_u32 count;                    /**< frame pubblicati (monotono) */
+    flow_u32 bank_seq[FLOW_SHM_BANKS]; /**< seqlock: dispari = scrittura */
     flow_shm_slot_t bank[FLOW_SHM_BANKS];
 } flow_shm_channel_t;
 
+/** @brief Mailbox completa: header, canali TX per nodo e RX. */
 typedef struct FLOW_PACKED flow_shm
 {
     flow_shm_header_t header;
 
-    /* TX: [connessione][nodo] - un solo scrittore per canale (quel core). */
+    /** TX: [connessione][nodo] - un solo scrittore per canale (quel core). */
     flow_shm_channel_t tx[FLOW_NUM_CONNECTIONS][FLOW_SHM_NODE_COUNT];
 
-    /* RX: [connessione] - un solo scrittore: il ruolo FIELDBUS. */
+    /** RX: [connessione] - un solo scrittore: il ruolo FIELDBUS. */
     flow_shm_channel_t rx[FLOW_NUM_CONNECTIONS];
 } flow_shm_t;
 
@@ -121,7 +136,7 @@ FLOW_STATIC_ASSERT(sizeof(flow_shm_t) == (FLOW_SHM_HEADER_SIZE +
                                              FLOW_NUM_CONNECTIONS * FLOW_SHM_CHANNEL_SIZE),
     "unexpected flow_shm_t size");
 
-/* Layout del frame ETG.5100:
+/** Layout del frame ETG.5100:
  *   len == 6: [0]=cmd [1]=data [2..3]=CRC_0 [4..5]=ConnId
  *   len >  6: parole CRC a 3 + 4*j, ConnId negli ultimi due byte.
  */

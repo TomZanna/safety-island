@@ -1,5 +1,7 @@
-/*
- * Helper di memoria del sottosistema flow.
+/**
+ * @file flow_mem.h
+ * @brief Helper di memoria del sottosistema flow.
+ * @ingroup flow
  *
  * Il codice safe non dipende dalla libc: con FLOW_FREESTANDING=1 (default 0 per
  * queste app, che linkano newlib-nano) fornisce anche i simboli memcpy/memset/

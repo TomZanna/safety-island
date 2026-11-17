@@ -1,5 +1,7 @@
-/*
- * Piattaforma i.MX94 per il sottosistema flow (M7_0, M7_1, M33_1).
+/**
+ * @file flow_platform_imx94.c
+ * @brief Piattaforma i.MX94 per il sottosistema flow (M7_0, M7_1, M33_1).
+ * @ingroup flow_platform
  *
  * Scelte:
  *   - tick di ciclo: SysTick a 1 kHz (board_millis, fw/common/board.c) con il

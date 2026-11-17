@@ -1,3 +1,9 @@
+/**
+ * @file board.c
+ * @brief Board glue comune alle app dei core secondari i.MX94 (M33S, M7_0, M7_1) con il System Manager.
+ * @ingroup board
+ *
+ */
 #include "board.h"
 
 #include "scmi.h"

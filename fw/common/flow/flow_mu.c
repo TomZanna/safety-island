@@ -1,3 +1,9 @@
+/**
+ * @file flow_mu.c
+ * @brief Messaggi di cross-check fra i due core safe (1oo2).
+ * @ingroup flow_mu
+ *
+ */
 #include "flow_mu.h"
 
 #include "flow_crc.h"

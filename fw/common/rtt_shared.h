@@ -1,5 +1,7 @@
-/*
- * SEGGER RTT con un solo control block condiviso da tutti i core secondari, un canale per core.
+/**
+ * @file rtt_shared.h
+ * @brief SEGGER RTT con un solo control block condiviso da tutti i core secondari, un canale per core.
+ * @ingroup rtt
  *
  * Il motore RTT del J-Link segue un solo control block per sonda: se ogni core avesse il suo (nella sua
  * TCM), una sessione ne vedrebbe uno solo. Qui il control block e i buffer stanno in 16 KB di OCRAM
@@ -14,6 +16,10 @@
  * (e l'header, identico per tutti). Nessuna cache dati attiva sull'area (gli M7 abilitano solo la
  * I-cache, l'M33S solo la cache del bus codice): se si abilita una D-cache, l'area va resa
  * non-cacheable via MPU.
+ *
+ * Il canale e' no-block-skip: se il buffer da 4 KB e' pieno il messaggio intero si perde (mai righe
+ * spezzate). Per questo i log per-ciclo sono dietro `FLOW_LOG_VERBOSE`, spento di default. Due lettori
+ * sullo stesso canale si rubano i dati; su canali diversi convivono.
  */
 #ifndef SI_RTT_SHARED_H
 #define SI_RTT_SHARED_H
@@ -21,11 +27,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define RTT_SHARED_BASE     0x204D0000U /* = _SEGGER_RTT (linker), 16 KB */
+#define RTT_SHARED_BASE     0x204D0000U /**< = _SEGGER_RTT (linker), 16 KB */
 #define RTT_SHARED_SIZE     0x4000U
-#define RTT_NUM_CHANNELS    3U          /* uno per core */
-#define RTT_UP_BUFFER_SIZE  4096U       /* target -> host, per core */
-#define RTT_DOWN_BUFFER_SIZE 64U        /* host -> target (input), per core */
+#define RTT_NUM_CHANNELS    3U /**< uno per core */
+#define RTT_UP_BUFFER_SIZE  4096U /**< target -> host, per core */
+#define RTT_DOWN_BUFFER_SIZE 64U /**< host -> target (input), per core */
 
 #if defined(CPU_MIMX94398AVKM_cm33_core1)
 #define RTT_CHANNEL 0U
@@ -35,16 +41,16 @@
 #define RTT_CHANNEL 2U
 #endif
 
-/* Prepara il canale di questo core (e l'header comune). Da chiamare una volta all'avvio. */
+/** Prepara il canale di questo core (e l'header comune). Da chiamare una volta all'avvio. */
 void rtt_init(void);
 
-/* Scrive n byte nel canale del core. Non blocca: se non c'e' spazio, il messaggio intero si perde. */
+/** Scrive n byte nel canale del core. Non blocca: se non c'e' spazio, il messaggio intero si perde. */
 void rtt_write(const char *data, size_t n);
 
-/* printf nel canale del core (vsnprintf di newlib-nano, max 255 caratteri per chiamata) */
+/** printf nel canale del core (vsnprintf di newlib-nano, max 255 caratteri per chiamata) */
 int rtt_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
-/* Carattere dall'input del core (buffer down), o -1 se non ce n'e' */
+/** Carattere dall'input del core (buffer down), o -1 se non ce n'e' */
 int rtt_getkey(void);
 
 #endif

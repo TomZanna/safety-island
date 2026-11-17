@@ -1,3 +1,9 @@
+/**
+ * @file flow_field.c
+ * @brief Ruolo FIELDBUS: lo slave FSoE (il "campo") e il generatore di ingressi.
+ * @ingroup flow_field
+ *
+ */
 #include "flow_field.h"
 
 #include "flow_mem.h"

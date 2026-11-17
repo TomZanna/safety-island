@@ -1,5 +1,7 @@
-/*
- * Aggancio alla piattaforma del ruolo safe.
+/**
+ * @file safe_platform.h
+ * @brief Aggancio alla piattaforma del ruolo safe.
+ * @ingroup flow_safe
  *
  * La MU18 ha un lato per M7: lato B su M7_0 (SAFE_A), lato A su M7_1 (SAFE_B).
  * E' un vincolo hardware, quindi la mappa sta qui e non nel driver

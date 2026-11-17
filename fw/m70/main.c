@@ -1,6 +1,7 @@
-/*
- * App M7_0: ruolo SAFE_A del virtual safe PLC (master FSoE #1, pubblica la meta'
- * CRC del frame) e lato B della MU18 verso M7_1.
+/**
+ * @file main.c
+ * @brief App M7_0: ruolo SAFE_A del virtual safe PLC (master FSoE #1, pubblica la meta' CRC del frame) e lato B della MU18 verso M7_1.
+ * @ingroup flow
  *
  * Qui solo il wiring dell'app: board_init, banner e punto di ingresso del ruolo
  * (fw/safe/safe_main.c). RTT: canale 1 del control block condiviso

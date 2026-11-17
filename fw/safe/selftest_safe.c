@@ -1,3 +1,9 @@
+/**
+ * @file selftest_safe.c
+ * @brief Scambio ICC fra i due core safe (payload in OCRAM + doorbell MU18 + CRC).
+ * @ingroup flow_safe
+ *
+ */
 #include "selftest_safe.h"
 
 #include "flow_icc.h"

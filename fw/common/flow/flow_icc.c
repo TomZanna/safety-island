@@ -1,3 +1,9 @@
+/**
+ * @file flow_icc.c
+ * @brief Canale inter-core del 1oo2 (ICC): payload protetto in OCRAM + doorbell MU18.
+ * @ingroup flow_icc
+ *
+ */
 #include "flow_icc.h"
 
 #include "flow_crc.h"

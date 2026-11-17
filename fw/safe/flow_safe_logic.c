@@ -1,3 +1,9 @@
+/**
+ * @file flow_safe_logic.c
+ * @brief Logica safe eseguita da entrambi i core. Funzione pura: niente tempo, niente I/O, niente casualita', cosi' SAFE_A e SAFE_B producono lo stesso risultato a parita' di ingressi (e i cross-check hanno senso).
+ * @ingroup flow_safe
+ *
+ */
 #include "flow_safe_logic.h"
 
 #include "flow_mem.h"

@@ -1,3 +1,9 @@
+/**
+ * @file flow_selftest.c
+ * @brief Prove all'avvio (KAT) comuni ai tre ruoli.
+ * @ingroup flow_selftest
+ *
+ */
 #include "flow_selftest.h"
 
 #include "flow_config.h"

@@ -1,9 +1,42 @@
-/*
- * Callback richieste dallo stack FSoE, lato master.
+/**
+ * @file fsoe_app.c
+ * @brief Callback richieste dallo stack FSoE, lato master.
+ * @ingroup flow_safe
  *
  * fw/safe/ e fw/fieldbus/ implementano le stesse cinque funzioni, ma ogni app ne
  * linka una sola: non c'e' nessun dispatch sul ruolo. Il riferimento consegnato
  * dallo stack e' un safe_fsoe_ref_t (fw/safe/flow_safe.h).
+ */
+
+/**
+ * @page fsoe_states Stati dello stack FSoE
+ *
+ * La progressione e' quella standard di ETG.5100 ed e' identica sui due master.
+ * Lo stack e' compilato come libreria statica per app (`libfsoe-<app>.a`) con un
+ * port minimo in `fw/common/flow/port/fsoeport.c`.
+ *
+ * \mermaid
+ * stateDiagram-v2
+ *     [*] --> Reset
+ *     Reset --> Session: richiesta di connessione
+ *     Session --> Connection: Session ID
+ *     Connection --> Parameter: Connection ID
+ *     Parameter --> Data: watchdog + parametri
+ *     Data --> Reset: watchdog scaduto / errore
+ * \endmermaid
+ *
+ * Il **Session ID** e' l'unico valore che i due core devono coordinare invece di
+ * calcolare: ciascuno genera un numero casuale con il proprio RNG, lo scambia, e
+ * il Session ID finale e' la somma dei due. Cosi' i frame che i due master
+ * generano sono identici e il cross-check del PDU in uscita ha senso.
+ *
+ * Il **watchdog** FSoE e' a 100 ms, dieci volte il ciclo safe: se lo slave
+ * smette di rispondere (o i frame vengono scartati) il master va in `WD_EXPIRED`
+ * e riparte da `Reset`. Il comportamento e' verificato scartando 60 frame di
+ * proposito (`d` sul canale RTT del fieldbus).
+ *
+ * Le callback di questo file sono il lato master; `fw/fieldbus/fsoe_app.c` ha le
+ * stesse funzioni per il lato slave.
  */
 #include "flow_app_parameters.h"
 #include "flow_fsoe_app.h"

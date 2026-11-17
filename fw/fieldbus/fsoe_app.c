@@ -1,5 +1,7 @@
-/*
- * Callback richieste dallo stack FSoE, lato slave.
+/**
+ * @file fsoe_app.c
+ * @brief Callback richieste dallo stack FSoE, lato slave.
+ * @ingroup flow_field
  *
  * fw/safe/ e fw/fieldbus/ implementano le stesse cinque funzioni, ma ogni app ne
  * linka una sola: non c'e' nessun dispatch sul ruolo. Il riferimento consegnato

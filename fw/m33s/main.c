@@ -1,7 +1,7 @@
-/*
- * App M33_1: ruolo FIELDBUS del virtual safe PLC. Fa l'A55 del diagramma: unisce
- * le due meta' dei core safe (MIN dei contatori + interleave), esegue lo slave
- * FSoE e genera il processo di campo. Non e' un componente di sicurezza.
+/**
+ * @file main.c
+ * @brief App M33_1: ruolo FIELDBUS del virtual safe PLC. Fa l'A55 del diagramma: unisce le due meta' dei core safe (MIN dei contatori + interleave), esegue lo slave FSoE e genera il processo di campo. Non e' un componente di sicurezza.
+ * @ingroup flow
  *
  * Qui solo il wiring dell'app: board_init, banner e punto di ingresso del ruolo
  * (fw/fieldbus/fieldbus_main.c). RTT: canale 0 del control block condiviso

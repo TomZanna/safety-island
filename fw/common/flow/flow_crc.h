@@ -1,5 +1,7 @@
-/*
- * CRC software del sottosistema flow.
+/**
+ * @file flow_crc.h
+ * @brief CRC software del sottosistema flow.
+ * @ingroup flow
  *
  * - CRC-32/ISO-HDLC (polinomio Ethernet) protegge i messaggi di cross-check 1oo2
  *   e il CRC-32 portato dal doorbell MU18. Quei messaggi sono decisioni di

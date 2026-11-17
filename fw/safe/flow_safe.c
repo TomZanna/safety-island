@@ -1,3 +1,9 @@
+/**
+ * @file flow_safe.c
+ * @brief Un core safe (m70 = SAFE_A, m71 = SAFE_B): stessa sorgente per entrambi; il ruolo lo passa il main.c dell'app (safe_main), non una macro di build. Ogni core ha la sua istanza dello stack FSoE master, il suo stato di sequenza MU e i suoi canali TX nella mailbox.
+ * @ingroup flow_safe
+ *
+ */
 #include "flow_safe.h"
 
 #include "flow_crc.h"

@@ -1,5 +1,7 @@
-/*
- * Tipi a larghezza fissa e identita' dei ruoli del virtual safe PLC.
+/**
+ * @file flow_types.h
+ * @brief Tipi a larghezza fissa e identita' dei ruoli del virtual safe PLC.
+ * @ingroup flow
  *
  * Regole per tutto cio' che passa dalla mailbox condivisa (flow_shm_api.h):
  *   - solo flow_u8 / flow_u16 / flow_u32;
@@ -27,7 +29,7 @@ typedef int32_t flow_s32;
 
 #define FLOW_STATIC_ASSERT(condition, message) _Static_assert(condition, message)
 
-/* Ruoli: uno per core secondario. Il ruolo e' una proprieta' dell'app (lo passa
+/** Ruoli: uno per core secondario. Il ruolo e' una proprieta' dell'app (lo passa
  * il main.c al punto di ingresso del ruolo), non una macro che seleziona codice.
  *
  *   SAFE_A (m70, M7_0)  master FSoE #1: pubblica la meta' CRC del frame
@@ -39,12 +41,12 @@ typedef int32_t flow_s32;
 #define FLOW_CORE_SAFE_B 1u
 #define FLOW_CORE_FIELDBUS 2u
 
-#define FLOW_CORE_COUNT 3u      /* ruoli totali (heartbeat nella mailbox) */
-#define FLOW_SAFE_CORE_COUNT 2u /* core che pubblicano una meta' del frame */
+#define FLOW_CORE_COUNT 3u /**< ruoli totali (heartbeat nella mailbox) */
+#define FLOW_SAFE_CORE_COUNT 2u /**< core che pubblicano una meta' del frame */
 
 typedef flow_u8 flow_core_id_t;
 
-/* Tag breve dei log RTT: "m70/A", "m71/B", "m33s/fld". */
+/** Tag breve dei log RTT: "m70/A", "m71/B", "m33s/fld". */
 FLOW_INLINE const char *flow_role_log_tag(flow_core_id_t role)
 {
     switch (role) {

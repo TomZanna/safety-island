@@ -1,3 +1,9 @@
+/**
+ * @file flow_shm.c
+ * @brief Accessori alla mailbox descritta in flow_shm_api.h.
+ * @ingroup flow_shm
+ *
+ */
 #include "flow_shm.h"
 
 #include "flow_crc.h"

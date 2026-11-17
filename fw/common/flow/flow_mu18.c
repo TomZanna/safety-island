@@ -1,3 +1,9 @@
+/**
+ * @file flow_mu18.c
+ * @brief MU18: l'unica MU fra due core secondari dell'i.MX94 EVK (config SM mx94evk).
+ * @ingroup flow_mu18
+ *
+ */
 #include "flow_mu18.h"
 
 #include "flow_platform.h"

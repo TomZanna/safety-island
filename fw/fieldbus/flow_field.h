@@ -1,5 +1,7 @@
-/*
- * Ruolo FIELDBUS: lo slave FSoE (il "campo") e il generatore di ingressi.
+/**
+ * @file flow_field.h
+ * @brief Ruolo FIELDBUS: lo slave FSoE (il "campo") e il generatore di ingressi.
+ * @ingroup flow_field
  *
  * Non e' un componente di sicurezza: genera ingressi casuali, risponde ai master
  * e pubblica la risposta nella mailbox. Serve a far girare il 1oo2 e a non far
@@ -20,7 +22,7 @@
 
 typedef struct flow_field flow_field_t;
 
-/* Riferimento passato a fsoeslave_init(): tipo proprio del ruolo fieldbus (in
+/** Riferimento passato a fsoeslave_init(): tipo proprio del ruolo fieldbus (in
  * questo binario non esiste il master), quindi nessun dispatch a runtime. */
 typedef struct field_fsoe_ref
 {
@@ -29,6 +31,7 @@ typedef struct field_fsoe_ref
     flow_field_t *field;
 } field_fsoe_ref_t;
 
+/** @brief Stato del ruolo fieldbus (slave, campo simulato, contatori). */
 typedef struct flow_field
 {
     field_fsoe_ref_t ref[FLOW_NUM_CONNECTIONS];
@@ -38,12 +41,12 @@ typedef struct flow_field
     flow_safe_inputs_t field_inputs[FLOW_NUM_CONNECTIONS];
     flow_safe_outputs_t field_outputs[FLOW_NUM_CONNECTIONS];
 
-    /* Frame ricevuto dal master (assemblato dal ruolo fieldbus). */
+    /** Frame ricevuto dal master (assemblato dal ruolo fieldbus). */
     flow_u8 rx_pdu[FLOW_PDU_MAX];
     flow_u32 rx_len;
     bool rx_ready;
 
-    /* Risposta dello slave, pronta per la mailbox. */
+    /** Risposta dello slave, pronta per la mailbox. */
     flow_u8 tx_pdu[FLOW_PDU_MAX];
     flow_u32 tx_len;
     bool tx_ready;
@@ -51,7 +54,7 @@ typedef struct flow_field
     flow_u32 bus_cycles;
     flow_u32 rng;
 
-    /* Stato del processo di campo simulato. */
+    /** Stato del processo di campo simulato. */
     bool estop_ok;
     bool door_closed;
     bool reset;
@@ -59,7 +62,7 @@ typedef struct flow_field
     flow_u32 reset_window;
     bool inject_discrepancy;
 
-    flow_u32 drop_frames; /* frame da scartare (test del watchdog FSoE) */
+    flow_u32 drop_frames; /**< frame da scartare (test del watchdog FSoE) */
 
     bool outputs_valid;
     bool enabled_seen;
@@ -69,20 +72,20 @@ typedef struct flow_field
 
 void flow_field_init(flow_field_t *field, flow_u16 slave_address);
 
-/* Frame del master da consegnare allo slave (uno per ciclo safe). */
+/** Frame del master da consegnare allo slave (uno per ciclo safe). */
 void flow_field_provide_rx(flow_field_t *field, const flow_u8 *pdu, flow_u32 len);
 
-/* Un passo di campo + slave (2 ms). */
+/** Un passo di campo + slave (2 ms). */
 void flow_field_step(flow_field_t *field);
 
-/* Prende la risposta dello slave da pubblicare in mailbox. */
+/** Prende la risposta dello slave da pubblicare in mailbox. */
 bool flow_field_take_tx(flow_field_t *field, flow_u8 *pdu, flow_u32 *len);
 
-/* Comandi da RTT. */
+/** Comandi da RTT. */
 void flow_field_set_discrepancy(flow_field_t *field, bool on);
 void flow_field_drop_frames(flow_field_t *field, flow_u32 frames);
 
-/* Callback dal glue FSoE. */
+/** Callback dal glue FSoE. */
 void flow_field_on_egress(flow_field_t *field, flow_u32 k, const void *buffer, size_t size);
 size_t flow_field_on_recv(flow_field_t *field, flow_u32 k, void *buffer, size_t size);
 flow_u16 flow_field_on_session(flow_field_t *field, flow_u32 k);

@@ -1,5 +1,7 @@
-/*
- * Prove all'avvio (KAT) comuni ai tre ruoli.
+/**
+ * @file flow_selftest.h
+ * @brief Prove all'avvio (KAT) comuni ai tre ruoli.
+ * @ingroup flow_selftest
  *
  * Come nel prototipo (imx-flow/src/app/self_test.c): se una prova fallisce il
  * sistema non parte. Qui si validano CRC, split/assemble del frame e le due
@@ -14,11 +16,11 @@
 
 #include "flow_types.h"
 
-/* Esegue tutte le prove comuni, logga ogni voce su RTT e ritorna true se sono
+/** Esegue tutte le prove comuni, logga ogni voce su RTT e ritorna true se sono
  * passate. */
 bool flow_selftest_run(flow_core_id_t self);
 
-/* Logga PASS/FAIL di una prova: la usano anche i selftest di ruolo. */
+/** Logga PASS/FAIL di una prova: la usano anche i selftest di ruolo. */
 void flow_selftest_check(const char *name, bool ok);
 
 #endif /* SI_FLOW_SELFTEST_H */
