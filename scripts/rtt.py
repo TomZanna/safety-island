@@ -39,6 +39,9 @@ def main():
     for attempt in range(20):
         try:
             jl.open()
+            # Le dialog box della DLL (es. "connect under reset") in un terminale non grafico restano
+            # appese e connect() non torna mai: sempre disabilitate.
+            jl.disable_dialog_boxes()
             break
         except pylink.errors.JLinkException as e:
             if attempt == 19:
