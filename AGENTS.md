@@ -12,6 +12,7 @@ Contesto: i.MX94 EVK, silicio **A0**, sviluppo da **WSL**. Qui solo regole e rim
 | Architettura, ruoli, tempi, diagnosi, limiti, misure | `docs/*.md` |
 | API, ABI, protocolli e invarianti di un modulo | commenti Doxygen nel `.c`/`.h` del modulo |
 | Layout delle strutture e mappa dei file | generati da Doxygen (niente tabelle copiate) |
+| Formattazione, lint e MISRA (non certificato) | `docs/qualita.md`; `.clang-format`, `.clang-tidy`; versioni minime in `quality/CMakeLists.txt` |
 | Dettagli operativi di uno script | intestazione dello script |
 | Regole per chi lavora qui | questo file |
 
@@ -26,8 +27,8 @@ Contesto: i.MX94 EVK, silicio **A0**, sviluppo da **WSL**. Qui solo regole e rim
   (`safe_main(FLOW_CORE_SAFE_A)`, `fieldbus_main()`), non una macro che accende pezzi di file.
 - **Astrai al secondo uso reale, non prima.** Nel codice safe ogni indirezione in più è costo di review.
 - **Il dettaglio vive vicino a chi lo usa**: API e invariante → commento Doxygen nel `.c`/`.h`; uso → README;
-  architettura e perché → `docs/*.md`; operatività → intestazione dello script. Una cosa nuova si scrive nel
-  posto giusto, non qui.
+  architettura e perché → `docs/*.md`; operatività → intestazione dello script; regole di formattazione/lint
+  → `.clang-format`/`.clang-tidy` e `docs/qualita.md`. Una cosa nuova si scrive nel posto giusto, non qui.
 
 ## Regole non negoziabili
 
@@ -39,7 +40,8 @@ Contesto: i.MX94 EVK, silicio **A0**, sviluppo da **WSL**. Qui solo regole e rim
 - **Versioni pinnate** solo in `cmake/SafetyIsland.cmake` (toolchain/strumenti, sha256), `deps/west.yml`
   (SDK), `docs/CMakeLists.txt` (Doxygen **1.18.0** + sha256), `docs/theme/doxygen-awesome-css/VERSION`
   (tema committato) e `docs/Doxyfile.in` (Mermaid/MathJax). `ext/toolchain` è un link alla toolchain in uso
-  (VS Code e gdb).
+  (VS Code e gdb). Per i tool quality **non c'è sha256**: `quality/CMakeLists.txt` dichiara solo le versioni
+  minime (clang 19.1.7, cppcheck 2.19.0), con warning se l'host è più vecchio.
 - **Niente DDR** sui core secondari: `flash.bin` non la inizializza. Il linker script è
   `fw/common/tcm.ld.in`; disattiva l'azzeramento della resource table RPMsg del SDK in `SystemInit()`.
 - **Periferiche**: le app non ne usano. Con l'SM, pin mux e clock passano da SCMI; se servono, gestire
@@ -50,6 +52,10 @@ Contesto: i.MX94 EVK, silicio **A0**, sviluppo da **WSL**. Qui solo regole e rim
 - **SM ed ELE in coppia**: `SM_ELE_VER` del tag SM = versione del pacchetto `firmware-ele-imx`. Oggi SM
   `lf-6.18.20-2.0.0` + ELE 2.0.6. La config `mx94evk` è quella NXP più `sm/patches/`: per cambiarla,
   patch, `make sm-update`, prova in board prima del commit. Dettagli: `sm/README.md`.
+- **Qualità**: prima del commit `make check` (format-check + lint + report MISRA) deve essere verde; i
+  finding MISRA si gestiscono con soppressioni motivate in `quality/misra-suppressions.txt`, mai con
+  soppressioni globali. `misra` è un triage, **non** una certificazione: per quella servono checker
+  qualificato e tool qualification.
 - **Config del checkout locale** (`~/imx-sm`) possono essere di un tag diverso: controlla sempre
   `build/_deps/imx-sm-<tag>/configs/` o `git show <tag>:configs/...`.
 
@@ -61,6 +67,9 @@ Contesto: i.MX94 EVK, silicio **A0**, sviluppo da **WSL**. Qui solo regole e rim
 - **I tool si dichiarano una volta sola**: `si_tool()` (versione + sha256), `deps/west.yml`,
   `ExternalProject` per i sorgenti. Niente "installa X" nel README se X è scaricabile: prerequisiti
   host, opzionali ed eccezioni stanno nel `README.md` §Cosa serve, il meccanismo in `docs/build.md`.
+  `clang-format`/`clang-tidy`/`cppcheck` sono l'eccezione esplicita: tool host opzionali per i soli target
+  quality, dichiarati con versione minima (niente sha256, dipende dalla distro); `make check` fallisce se
+  mancano, `image`/`run`/`docs` no.
 - **`sudo` solo nel setup dell'ambiente** (WSL: `scripts/usb-setup.sh`). Mai in build, run, debug, docs.
 - **La pulizia ha tre livelli, nel `Makefile`**: `clean` (build del preset), `distclean` (tutti i
   build), `clean-all` (anche i download: `ext/`, `.west/`). Niente `rm -rf` sparsi fuori da lì.

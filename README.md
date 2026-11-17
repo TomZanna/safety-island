@@ -47,6 +47,11 @@ pinnate e sha256.
   "ho letto e accetto la EULA NXP").
 - **`docs`:** nessun prerequisito manuale: Doxygen 1.18.0 viene scaricato in `ext/tools/` al primo
   `make docs` (sha256). Mermaid e MathJax sono caricati dal browser via CDN; non servono Graphviz né LaTeX.
+- **Solo per `format`/`lint`/`misra`/`check` (opzionali):** `clang-format` ≥ 19.1.7,
+  `clang-tidy` ≥ 19.1.7 e `cppcheck` ≥ 2.19.0. Su Ubuntu:
+  `sudo apt install clang-format-19 clang-tidy-19 cppcheck`. Non servono per `image`, `run` o `docs`:
+  `make check` fallisce subito se mancano, avvisa se la versione è vecchia (niente sha256: dipende dalla
+  distro). Dettagli in `docs/qualita.md`.
 
 ## Struttura
 
@@ -63,6 +68,7 @@ sm/                  binari SM committati + Dockerfile riproducibile + patches/ 
 image/               mkimage_imx8 (ExternalProject) e flash.bin
 board/               flash, run, reset, uart, debug, usb: wrapper agli script; usb-devices.conf
 docs/                Doxyfile + pagine Markdown (architettura/setup/misure) + tema; il resto è generato
+quality/             target opzionali clang-format/clang-tidy/cppcheck (MISRA non certificato)
 scripts/             script per USB/seriale/J-Link/uuu, west e Docker dell'SM
 docker/              container per il target image
 .vscode/             task, debug (Cortex-Debug), IntelliSense
@@ -93,6 +99,10 @@ fw/<app> o M*_BIN  ──┘                                                    
 | `ele` | scarica il firmware ELE (2.0.6), estrae il container i.MX94 A0, verifica lo sha256 |
 | `sm-verify` / `sm-update` | ricostruiscono l'SM da sorgenti nel Docker dedicato: confronto con `sm/`, o sovrascrittura |
 | `docs` / `docs-serve` | `build/<preset>/docs/html/index.html` con Doxygen; `docs-serve` = server locale su `DOCS_PORT` |
+| `format` / `format-check` | `clang-format` sui sorgenti `fw/` (esclusa la libreria FSoE); `format-check` non modifica |
+| `lint` / `lint-fix` | `clang-tidy` sul `compile_commands.json`; `lint-fix` applica i fix, da rivedere |
+| `misra` / `misra-check` | `cppcheck --addon=misra` (MISRA C:2012, **non certificato**): report o gate |
+| `check` / `check-misra` | precheck tool + format-check + lint + report MISRA; `check-misra` include il gate MISRA |
 | `docker-image` | `image` dentro un container (preset `docker`, senza `fw/`, output in `build/docker/`) |
 | `clean` / `distclean` / `clean-all` | pulizia (solo `make`, senza riconfigurare): build del preset corrente / tutti i build / anche `ext/` e `.west/`. Le prime due non richiedono rete |
 | `py-deps` | solo il venv `ext/venv` (west + pylink): dipendenza di `rtt` e `deps` |
@@ -358,6 +368,7 @@ cmake --preset mx94evk -DM70_WAIT_DEBUGGER=ON -DRESET_METHOD=bcu
 | `SM_TAG`, `SM_CONFIGS` | `lf-6.18.20-2.0.0`, `mx94evk;mx94alt` | per `sm-verify`/`sm-update` |
 | `SI_TOOLS_DIR` | `ext/tools` | dove scaricare toolchain e strumenti |
 | `DOXYGEN_VERSION`, `DOCS_PORT`, `DOCS_AWESOME_CSS` | `1.18.0`, `8000`, `ON` | versione Doxygen scaricata, porta di `docs-serve`, tema committato |
+| `SI_CLANG_MIN_VERSION`, `SI_CPPCHECK_MIN_VERSION` | `19.1.7`, `2.19.0` | versioni minime dei tool quality; sotto la minima solo warning |
 
 I percorsi relativi dei binari sono risolti rispetto alla radice del repo.
 
@@ -462,4 +473,6 @@ container.
   con `GDB_BATCH=1` lo script lo fa ripartire da solo. Un core alla volta (una sola porta GDB).
 - **Un download ELE per preset:** ogni `build/<preset>/` scarica il suo firmware ELE.
 - **Solo silicio A0:** il container ELE estratto è quello A0.
+- **Quality:** `misra` è un report di cppcheck, **non una certificazione** MISRA (mancano rule texts e tool
+  qualification); `format`/`lint` dipendono dalle versioni host e per questo il build avvisa se sono vecchie.
 - **Non implementato:** boot persistente da SD/eMMC (`uuu -b sd <flash_all LF> <flash.bin>` è l'idea).

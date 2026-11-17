@@ -44,6 +44,7 @@ l'architettura, il setup e le misure. I comandi d'uso stanno nel
 | @ref limiti | limiti noti e lavoro futuro |
 | @ref misure | registro delle misure e footprint |
 | @ref glossario | acronimi |
+| @ref qualita | clang-format, clang-tidy e MISRA (non certificato) |
 
 I dettagli di API e protocolli sono nei gruppi Doxygen:
 

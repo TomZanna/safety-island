@@ -51,7 +51,10 @@ Tre livelli, tutti verificabili:
    percorsi fissi, poi confronta i byte con `sm/`;
 3. *documentazione*: Doxygen 1.18.0 + sha256 in `docs/CMakeLists.txt`, tema
    `doxygen-awesome-css` 2.5.0 committato in `docs/theme/`, e Mermaid/MathJax
-   pinnati nel `Doxyfile.in` (`mermaid@11.17.2`, `mathjax@3.2.2`).
+   pinnati nel `Doxyfile.in` (`mermaid@11.17.2`, `mathjax@3.2.2`);
+4. *qualita'*: versioni minime di clang-format/clang-tidy/cppcheck in
+   `quality/CMakeLists.txt`, con warning se l'host e' piu' vecchio (dettagli
+   in @ref qualita).
 
 > Il primo `make docs` scarica Doxygen (~115 MB) in `ext/tools/`; Mermaid e
 > MathJax sono caricati dal browser, non servono al build. La consultazione

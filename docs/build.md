@@ -62,6 +62,14 @@ La pulizia ha tre livelli, nel `Makefile` e fuori da CMake (non riconfigurano):
 Dopo `clean-all` il build successivo e' la prova del bootstrap da zero. Restano
 fuori le immagini Docker (`safety-island-build`, lo SM): sono dell'utente.
 
+## Qualita' del codice {#qualita-build}
+
+Il modulo `quality/` aggiunge target opzionali per `clang-format`,
+`clang-tidy` e `cppcheck` (MISRA non certificato). Non sono dipendenze di
+`image`/`run`/`docs`: se i tool mancano, solo i target quality falliscono con
+l'istruzione di installazione; se la versione e' sotto la minima stampano un
+warning. Versioni e comportamento sono in @ref qualita.
+
 ## SDK come dipendenza {#sdk}
 
 `deps/west.yml` pinna quattro repo NXP per commit (SDK core, device i.MX,
