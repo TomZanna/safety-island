@@ -1,0 +1,30 @@
+safety-island: 16 KB di OCRAM (0x204D4000) condivisi da M33S, M7_0 e M7_1 per la mailbox del virtual
+safe PLC (fw/common/flow): frame FSoE spezzati (meta' CRC / meta' dati), messaggi di cross-check 1oo2 e
+barrier di ciclo fra i due core safe. Si applica dopo 0001 (stessa area OCRAM, entry successiva).
+
+--- a/configs/mx94evk.cfg
++++ b/configs/mx94evk.cfg
+@@ -414,6 +414,7 @@
+ # Memory
+ 
+ OCRAM               DATA, begin=0x0204D0000, size=16K  # RTT condiviso (safety-island)
++OCRAM               DATA, begin=0x0204D4000, size=16K  # mailbox flow (safety-island)
+ 
+ OCRAM_S1            EXEC, begin=0x020800000, end=0x02087FFFF
+ OCRAM_S2            EXEC, begin=0x020880000, end=0x0208FFFFF
+@@ -597,6 +598,7 @@
+ # Memory
+ 
+ OCRAM               DATA, begin=0x0204D0000, size=16K  # RTT condiviso (safety-island)
++OCRAM               DATA, begin=0x0204D4000, size=16K  # mailbox flow (safety-island)
+ 
+ M7MIX0              DATA, begin=0x020380000, end=0x02047FFFF
+ M7MIX0              DATA, begin=0x04A060000, end=0x04A09FFFF
+@@ -705,6 +707,7 @@
+ # Memory
+ 
+ OCRAM               DATA, begin=0x0204D0000, size=16K  # RTT condiviso (safety-island)
++OCRAM               DATA, begin=0x0204D4000, size=16K  # mailbox flow (safety-island)
+ 
+ M7MIX1              DATA, begin=0x020280000, end=0x02037FFFF
+ M7MIX1              DATA, begin=0x049C60000, end=0x049C9FFFF
