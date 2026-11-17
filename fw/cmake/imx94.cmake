@@ -55,7 +55,7 @@ function(imx94_firmware target)
         "${SDK_ROOT}/components/misc_utilities/fsl_sbrk.c")
     add_executable(${target} ${F_SOURCES} "${FW_COMMON}/board.c" "${FW_COMMON}/rtt_shared.c" ${sdk_sources})
     set_target_properties(${target} PROPERTIES SUFFIX ".elf")
-    target_include_directories(${target} PRIVATE
+    set(fw_includes
         "${FW_COMMON}"
         "${SDK_ROOT}/arch/arm/CMSIS/Core/Include"
         "${SDK_ROOT}/arch/arm/CMSIS/Core/Include/m-profile"
@@ -65,10 +65,13 @@ function(imx94_firmware target)
         "${SDK_ROOT}/components/scmi" "${SDK_ROOT}/components/smt" "${SDK_ROOT}/components/imx_sm_crc"
         # solo l'header: system_*.c del SDK lo include; con SDK_DEBUGCONSOLE=2 PRINTF e' una no-op
         "${SDK_ROOT}/components/debug_console_lite")
+    target_include_directories(${target} PRIVATE ${fw_includes})
     target_compile_definitions(${target} PRIVATE
         CPU_MIMX94398AVKM_${core} MIMX94398_${core}_SERIES
         __STARTUP_CLEAR_BSS MCUXPRESSO_SDK SDK_DEBUGCONSOLE=2
         $<$<CONFIG:Debug>:DEBUG>)
+
+    set(arch -mthumb ${cpu} -mfloat-abi=hard)
 
     # --- virtual safe PLC (fw/common/flow) -------------------------------------------------------
     # FLOW_ROLE: master = core safe (m70 = SAFE_A, m71 = SAFE_B), fieldbus = m33s (A55 + slave FSoE).
@@ -83,6 +86,27 @@ function(imx94_firmware target)
             message(FATAL_ERROR "imx94_firmware: FLOW_ROLE su '${target}' non previsto")
         endif()
         set(flow_dir "${FW_COMMON}/flow")
+        set(fsoe_dir "${FW_COMMON}/fsoe")
+
+        # Stack FSoE di rt-labs come archivio statico separato: ogni file compilato a parte, link
+        # finale con l'app. FSoEappl/ e' l'esempio NXP e non si compila; il port e' flow/port.
+        add_library(fsoe-${target} STATIC
+            "${fsoe_dir}/src/fsoemaster.c"
+            "${fsoe_dir}/src/fsoeslave.c"
+            "${fsoe_dir}/src/fsoeframe.c"
+            "${fsoe_dir}/src/fsoechannel.c"
+            "${fsoe_dir}/src/fsoewatchdog.c"
+            "${fsoe_dir}/src/fsoesracrc.c"
+            "${fsoe_dir}/src/fsoeutil.c"
+            "${fsoe_dir}/src/fsoeoptions.c"
+            "${fsoe_dir}/src/fsoeapp.c"
+            "${flow_dir}/port/fsoeport.c")
+        target_include_directories(fsoe-${target} PRIVATE
+            "${fsoe_dir}/include" "${fsoe_dir}/src" "${flow_dir}" "${flow_dir}/port" ${fw_includes})
+        target_compile_definitions(fsoe-${target} PRIVATE FSOE_STATIC_DEFINE FLOW_CORE_ID=${flow_core_id})
+        target_compile_options(fsoe-${target} PRIVATE ${arch} -include "${FW_COMMON}/mcux_config.h"
+            -ffunction-sections -fdata-sections -fno-common -fno-builtin -w)
+
         target_sources(${target} PRIVATE
             "${flow_dir}/flow_mem.c"
             "${flow_dir}/flow_crc.c"
@@ -91,11 +115,12 @@ function(imx94_firmware target)
             "${flow_dir}/flow_selftest.c"
             "${flow_dir}/flow.c"
             "${FW_COMMON}/flow_platform_imx94.c")
-        target_include_directories(${target} PRIVATE "${flow_dir}")
-        target_compile_definitions(${target} PRIVATE FLOW_CORE_ID=${flow_core_id})
+        target_include_directories(${target} PRIVATE "${flow_dir}" "${flow_dir}/port"
+            "${fsoe_dir}/include" "${fsoe_dir}/src")
+        target_compile_definitions(${target} PRIVATE FLOW_CORE_ID=${flow_core_id} FSOE_STATIC_DEFINE)
+        target_link_libraries(${target} PRIVATE fsoe-${target})
     endif()
 
-    set(arch -mthumb ${cpu} -mfloat-abi=hard)
     target_compile_options(${target} PRIVATE ${arch}
         -include "${FW_COMMON}/mcux_config.h"
         -ffunction-sections -fdata-sections -fno-common -fno-builtin
